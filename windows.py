@@ -1,7 +1,10 @@
 import psutil
+import win32api
 import win32con
 import win32gui
 import win32process
+
+from models import Monitor
 
 
 # ------------------------getting info of the window------------------------
@@ -58,6 +61,50 @@ def move_window(hwnd, x, y, w, h):
 # ------------------------getting windows current position------------------------
 def get_window_rect(hwnd):
     return win32gui.GetWindowRect(hwnd)
+
+
+# ------------------------auto grabbing all mon coords------------------------
+def detect_monitors():
+    """
+    Detect every monitor currently connected to Windows.
+
+    Returns:
+        list[Monitor]
+    """
+
+    monitors = []
+
+    # EnumDisplayMonitors returns:
+    # (monitor_handle, monitor_area, work_area)
+    for hmonitor, monitor_rect, work_rect in win32api.EnumDisplayMonitors():
+        info = win32api.GetMonitorInfo(int(hmonitor))
+        left, top, right, bottom = info["Monitor"]
+
+        monitors.append(
+            Monitor(
+                id=info["Device"],
+                x=left,
+                y=top,
+                width=right - left,
+                height=bottom - top,
+                zones=[],
+            )
+        )
+
+    return monitors
+
+
+def get_monitor_for_window(hwnd):
+    """
+    Returns the Windows monitor that contains
+    the center of this window.
+    """
+
+    hmonitor = win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST)
+
+    info = win32api.GetMonitorInfo(hmonitor)
+
+    return info["Device"]
 
 
 # ------------------------------ old manual logic

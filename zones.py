@@ -13,37 +13,53 @@ class ZoneManager:
 
     # ------------------------finding defined zone and priority------------------------
 
-    def find_best_zone(self, window_info):
+    def find_best_zone(self, hwnd):
         """
-        Logic to loop through zones to find a matching zone if one exists
+        Finds the best available zone.
+
+        Priority:
+        1. Current monitor
+        2. Other monitors
+        3. Matching assignment
+        4. Any zone
         """
-        all_zones = []
-        for m in self.monitors:
-            all_zones.extend(m.zones)
-        unoccupied = [z for z in all_zones if z.occupied_hwnd is None]
 
-        # priority 1: exact title match
-        for zone in unoccupied:
-            if zone.assignment == window_info["title"]:
-                return zone
+        window_info = windows.get_window_info(hwnd)
 
-        # priority 2: exact exe/app match
-        for zone in unoccupied:
-            if zone.assignment == window_info["exe"]:
-                return zone
+        preferred_monitor = windows.get_monitor_for_window(hwnd)
 
-        # priority 3: exact class match
-        for zone in unoccupied:
-            if zone.assignment == window_info["class"]:
-                return zone
+        # Put preferred monitor first
+        monitors = sorted(self.monitors, key=lambda m: m.id != preferred_monitor)
 
-        # priority 4: "any" zone (assignment == None)
-        for zone in unoccupied:
-            if zone.assignment is None:
-                return zone
+        for monitor in monitors:
 
-        print(f"No available zone for {window_info['title']}")
-        return None  # no zone available
+            unoccupied = [zone for zone in monitor.zones if zone.occupied_hwnd is None]
+
+            if not unoccupied:
+                continue
+
+            # Priority 1: exact title
+            for zone in unoccupied:
+                if zone.assignment == window_info["title"]:
+                    return zone
+
+            # Priority 2: exe
+            for zone in unoccupied:
+                if zone.assignment == window_info["exe"]:
+                    return zone
+
+            # Priority 3: class
+            for zone in unoccupied:
+                if zone.assignment == window_info["class"]:
+                    return zone
+
+            # Priority 4: any
+            for zone in unoccupied:
+                if zone.assignment is None:
+                    return zone
+
+        print(f"No available zones for {window_info['title']}")
+        return None
 
     def get_window_under_cursor(self):
         """
@@ -80,19 +96,15 @@ class ZoneManager:
             print(f"Window is already tiled in {current_zone}")
             return
 
-        # 3. Get window info
-        info = windows.get_window_info(hwnd)
+        # 4. Find the best zone for this window
+        zone = self.find_best_zone(hwnd)
 
-        # 4. Find best zone
-        zone = self.find_best_zone(info)
         if zone is None:
             return
 
-        # number 3 already covers this
-        # 5. Skip if already correctly tiled
-        # if self.is_window_correctly_placed(hwnd, zone):
-        #     print(f"{info} Window is already placed")
-        #     return
+        # 5. Grab info only for logging
+        info = windows.get_window_info(hwnd)
+
         # 6. Move window
         print(f"Moving {info} to {zone}")
         windows.move_window(hwnd, zone.x, zone.y, zone.width, zone.height)
