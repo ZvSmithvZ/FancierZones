@@ -3,10 +3,6 @@ import threading
 import time
 from ctypes import wintypes
 
-import win32api
-import win32con
-import win32gui
-
 from zones import ZoneManager
 
 # ============================================================================
@@ -204,9 +200,9 @@ user32.SetWindowsHookExW.argtypes = [
 user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
 user32.SendInput.restype = wintypes.UINT
 
-print(
-    f"[debug] ctypes.sizeof(INPUT) = {ctypes.sizeof(INPUT)} (must be non-zero/match user32's expectation)"
-)
+# print(
+#     f"[debug] ctypes.sizeof(INPUT) = {ctypes.sizeof(INPUT)} (must be non-zero/match user32's expectation)"
+# )
 
 # ---- Shared state ----
 zone_manager: ZoneManager | None = None
@@ -222,13 +218,13 @@ win_key_down = False
 combo_in_progress = False
 
 
-def get_window_under_cursor():
-    print("get_window_under_cursor in hooks.py")
-    x, y = win32api.GetCursorPos()
-    hwnd = win32gui.WindowFromPoint((x, y))
-    root = win32gui.GetAncestor(hwnd, win32con.GA_ROOT)
-    print(f"[debug] window under cursor: hwnd={hwnd}, root={root}")
-    return root
+# def get_window_under_cursor():
+#     print("get_window_under_cursor in hooks.py")
+#     x, y = win32api.GetCursorPos()
+#     hwnd = win32gui.WindowFromPoint((x, y))
+#     root = win32gui.GetAncestor(hwnd, win32con.GA_ROOT)
+#     # print(f"[debug] window under cursor: hwnd={hwnd}, root={root}")
+#     return root
 
 
 def _send_ctrl_down():
@@ -237,10 +233,11 @@ def _send_ctrl_down():
         type=INPUT_KEYBOARD,
         ki=KEYBDINPUT(wVk=VK_CONTROL, wScan=0, dwFlags=0, time=0, dwExtraInfo=0),
     )
-    sent = user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(INPUT))
-    print(
-        f"[debug] sent CTRL key-down (holding), SendInput reported {sent} event(s) (expected 1)"
-    )
+    user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(INPUT))
+    # sent = user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(INPUT))
+    # print(
+    #     f"[debug] sent CTRL key-down (holding), SendInput reported {sent} event(s) (expected 1)"
+    # )
 
 
 def _send_ctrl_up():
@@ -251,10 +248,11 @@ def _send_ctrl_up():
             wVk=VK_CONTROL, wScan=0, dwFlags=KEYEVENTF_KEYUP, time=0, dwExtraInfo=0
         ),
     )
-    sent = user32.SendInput(1, ctypes.byref(up), ctypes.sizeof(INPUT))
-    print(
-        f"[debug] sent CTRL key-up (releasing), SendInput reported {sent} event(s) (expected 1)"
-    )
+    user32.SendInput(1, ctypes.byref(up), ctypes.sizeof(INPUT))
+    # sent = user32.SendInput(1, ctypes.byref(up), ctypes.sizeof(INPUT))
+    # print(
+    #     f"[debug] sent CTRL key-up (releasing), SendInput reported {sent} event(s) (expected 1)"
+    # )
 
 
 def _release_ctrl_after_delay():
@@ -295,16 +293,16 @@ def low_level_keyboard_proc(nCode, wParam, lParam):
 
         if kb.vkCode in (VK_LWIN, VK_RWIN):
             if wParam in (WM_KEYDOWN, WM_SYSKEYDOWN):
-                if not win_key_down:
-                    print(
-                        "[debug] WIN key DOWN (physical) -- passing through untouched"
-                    )
+                # if not win_key_down:
+                # print(
+                #     "[debug] WIN key DOWN (physical) -- passing through untouched"
+                # )
                 win_key_down = True
 
             elif wParam in (WM_KEYUP, WM_SYSKEYUP):
-                print(
-                    f"[debug] WIN key UP (physical) -- passing through untouched, combo_in_progress={combo_in_progress}"
-                )
+                # print(
+                #     f"[debug] WIN key UP (physical) -- passing through untouched, combo_in_progress={combo_in_progress}"
+                # )
                 win_key_down = False
 
                 if combo_in_progress:
@@ -312,7 +310,7 @@ def low_level_keyboard_proc(nCode, wParam, lParam):
                     # CallNextHookEx below. Release our held Ctrl shortly
                     # after -- not before -- so Ctrl is still registered
                     # as down at the moment Explorer evaluates this event.
-                    print("[debug] -> combo was in progress; scheduling Ctrl release")
+                    # print("[debug] -> combo was in progress; scheduling Ctrl release")
                     combo_in_progress = False
                     threading.Thread(
                         target=_release_ctrl_after_delay, daemon=True
@@ -333,9 +331,9 @@ def low_level_mouse_proc(nCode, wParam, lParam):
     if nCode == 0:
 
         if wParam == WM_RBUTTONDOWN:
-            print(f"[debug] WM_RBUTTONDOWN received, win_key_down={win_key_down}")
+            # print(f"[debug] WM_RBUTTONDOWN received, win_key_down={win_key_down}")
             if win_key_down:
-                print("[debug] -> WIN + RIGHT CLICK detected, handling combo")
+                # print("[debug] -> WIN + RIGHT CLICK detected, handling combo")
 
                 # Hold Ctrl down NOW, immediately -- before the user even
                 # releases Win. It stays held until the keyboard hook sees
@@ -344,21 +342,21 @@ def low_level_mouse_proc(nCode, wParam, lParam):
                 _send_ctrl_down()
 
                 if zone_manager:
-                    print("[debug] calling zone_manager.tile_under_cursor()")
+                    # print("[debug] calling zone_manager.tile_under_cursor()")
                     zone_manager.tile_under_cursor()
-                else:
-                    print("[debug] zone_manager is None!")
+                # else:
+                # print("[debug] zone_manager is None!")
 
-                print("[debug] swallowing RBUTTONDOWN")
+                # print("[debug] swallowing RBUTTONDOWN")
                 return 1  # stop the app under the cursor from seeing the right-click
 
         if wParam == WM_RBUTTONUP:
-            print(f"[debug] WM_RBUTTONUP received, win_key_down={win_key_down}")
+            # print(f"[debug] WM_RBUTTONUP received, win_key_down={win_key_down}")
             if win_key_down:
                 # Still holding Win when the button comes up -- this was
                 # part of our combo, swallow the matching up too so the
                 # app under the cursor never sees a full click.
-                print("[debug] swallowing RBUTTONUP (matching combo down)")
+                # print("[debug] swallowing RBUTTONUP (matching combo down)")
                 return 1
 
     return user32.CallNextHookEx(None, nCode, wParam, lParam)

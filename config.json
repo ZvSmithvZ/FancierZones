@@ -1,0 +1,51 @@
+{
+    "monitors": [
+        {
+            "id": "\\\\.\\DISPLAY2",
+            "x": 1920,
+            "y": 0,
+            "width": 1920,
+            "height": 1080,
+            "zones": [
+                {
+                    "x": 1920,
+                    "y": 0,
+                    "width": 1920,
+                    "height": 1080,
+                    "assignment": null
+                }
+            ]
+        },
+        {
+            "id": "\\\\.\\DISPLAY1",
+            "x": 0,
+            "y": 0,
+            "width": 1920,
+            "height": 1080,
+            "zones": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "width": 960,
+                    "height": 1080,
+                    "assignment": "notepad.exe"
+                },
+                {
+                    "x": 960,
+                    "y": 0,
+                    "width": 960,
+                    "height": 1080,
+                    "assignment": null
+                }
+            ]
+        },
+        {
+            "id": "\\\\.\\DISPLAY3",
+            "x": -1920,
+            "y": 0,
+            "width": 1920,
+            "height": 1080,
+            "zones": []
+        }
+    ]
+}
