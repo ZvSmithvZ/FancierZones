@@ -5,6 +5,8 @@ import win32gui
 import windows
 from models import Monitor
 
+debug = True
+
 
 # ------------------------Defining Zone Manager Class------------------------
 class ZoneManager:
