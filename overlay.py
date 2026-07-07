@@ -140,7 +140,27 @@ class ZoneOverlay:
         for monitor in self.monitors:
 
             print("MONITOR:", monitor.id, "position:", monitor.x, monitor.y)
+            mx1 = monitor.x - self.min_x
+            my1 = monitor.y - self.min_y
 
+            mx2 = mx1 + monitor.width
+            my2 = my1 + monitor.height
+            self.canvas.create_rectangle(
+                mx1,
+                my1,
+                mx2,
+                my2,
+                outline="blue",
+                width=5,
+            )
+
+            self.canvas.create_text(
+                mx1 + 10,
+                my1 + 10,
+                text=monitor.id,
+                anchor="nw",
+                fill="white",
+            )
             for zone in monitor.zones:
 
                 # ----------------------------------------------------
@@ -178,7 +198,7 @@ class ZoneOverlay:
                 self.canvas.create_text(
                     x1 + 10,
                     y1 + 10,
-                    text=f"{zone.width}x{zone.height}",
+                    text=f"Xcoord:{zone.x} Ycoord:{zone.y} Dimensions:{zone.width}x{zone.height} Assigned:{zone.assignment}",
                     anchor="nw",
                     fill="white",
                 )
@@ -189,4 +209,10 @@ class ZoneOverlay:
 
         self.draw()
 
-        self.root.mainloop()
+        self.root.update()
+
+    def update(self):
+
+        if self.root:
+            self.draw()
+            self.root.update()

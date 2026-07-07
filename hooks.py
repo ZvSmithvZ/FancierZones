@@ -64,6 +64,7 @@ WH_MOUSE_LL = 14
 VK_LWIN = 0x5B
 VK_RWIN = 0x5C
 VK_CONTROL = 0x11
+VK_F12 = 0x7B
 
 # ---- Keyboard hook message constants ----
 # SYSKEYDOWN/UP fire instead of the plain versions when Alt (or in some
@@ -315,6 +316,16 @@ def low_level_keyboard_proc(nCode, wParam, lParam):
                     threading.Thread(
                         target=_release_ctrl_after_delay, daemon=True
                     ).start()
+
+    if wParam == 0x0100:  # F12 key down
+        kb = ctypes.cast(lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
+
+        if kb.vkCode == VK_F12:
+
+            if zone_manager:
+                zone_manager.toggle_editor()
+
+            return 1
 
     # Always pass every real keyboard event through untouched. We never
     # suppress here -- suppression is achieved via the held Ctrl key, not

@@ -10,6 +10,20 @@ from models import Monitor, Zone
 class ZoneManager:
     def __init__(self):
         self.monitors: list[Monitor] = []
+        # ------------------------------------------------------------
+        # Tracks whether we are currently creating/editing zones
+        # ------------------------------------------------------------
+        self.editor_mode = False
+        # ------------------------------------------------------------
+        # Reference to ZoneEditor
+        #
+        # This gets assigned later in main.py:
+        #
+        # zone_manager.editor = editor
+        #
+        # We set it here so VS Code knows this attribute exists.
+        # ------------------------------------------------------------
+        self.editor = None
 
     # ------------------------finding defined zone and priority------------------------
 
@@ -203,6 +217,29 @@ class ZoneManager:
         monitor.zones.append(zone)
 
         return zone
+
+    def toggle_editor(self):
+        """
+        Enables/disables zone creation mode.
+        """
+
+        self.editor_mode = not self.editor_mode
+
+        print("Editor mode:", self.editor_mode)
+
+        if self.editor:
+            self.editor.set_mode(self.editor_mode)
+
+    def set_editor(self, editor):
+        """
+        Connects the ZoneManager to the ZoneEditor.
+
+        ZoneManager handles the zone data.
+        ZoneEditor handles the visual editing.
+        They need a reference to communicate.
+        """
+
+        self.editor = editor
 
 
 # ---------------- old function in zonemanager
