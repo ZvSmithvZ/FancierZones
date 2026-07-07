@@ -47,17 +47,17 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": -1119,
-                    "y": 159,
-                    "width": 609,
-                    "height": 496,
-                    "assignment": null
-                },
-                {
                     "x": -1537,
                     "y": 53,
                     "width": 483,
                     "height": 419,
+                    "assignment": null
+                },
+                {
+                    "x": -841,
+                    "y": 224,
+                    "width": 680,
+                    "height": 572,
                     "assignment": null
                 }
             ]

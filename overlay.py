@@ -206,8 +206,12 @@ class ZoneOverlay:
                 # print("ZONE:", zone.x, zone.y, "canvas:", x1, y1)
 
                 # Draw rectangle
-                outline = "yellow" if zone == self.selected_zone else "red"
-                width = 5 if zone == self.selected_zone else 3
+                if zone == self.selected_zone:
+                    outline = "yellow"
+                    width = 5
+                else:
+                    outline = "red"
+                    width = 3
 
                 self.canvas.create_rectangle(
                     x1,
@@ -266,63 +270,40 @@ class ZoneOverlay:
             self.root.update()
 
     def mouse_down(self, event):
-        """
-        Starts drawing a new zone. Or selecting an existing one
-        """
-        # print("MOUSE DOWN RECEIVED")
-        # Convert canvas coordinates to Windows coordinates
+
         windows_x = event.x + self.min_x
         windows_y = event.y + self.min_y
 
-        # Check every zone
-        for monitor in self.monitors:
-            for zone in monitor.zones:
+        zone = self.hit_test(event.x, event.y)
 
-                # Padding of where you can click
-                border = 8
-                # Is the mouse inside the rectangle at all?
-                inside = (
-                    zone.x <= windows_x <= zone.x + zone.width
-                    and zone.y <= windows_y <= zone.y + zone.height
-                )
+        if zone:
 
-                # adding dragging logic
-                if inside and zone == self.selected_zone:
+            print("Border selected:", zone)
 
-                    self.dragging_zone = True
+            self.selected_zone = zone
 
-                    self.drag_offset_x = windows_x - zone.x
-                    self.drag_offset_y = windows_y - zone.y
+            # Prepare for possible movement
+            self.dragging_zone = True
 
-                    print("Moving zone")
+            self.drag_offset_x = windows_x - zone.x
+            self.drag_offset_y = windows_y - zone.y
 
-                    return
+            self.drag_start_x = event.x
+            self.drag_start_y = event.y
 
-                # Is the mouse close to one of the four borders?
-                near_border = (
-                    abs(windows_x - zone.x) <= border
-                    or abs(windows_x - (zone.x + zone.width)) <= border
-                    or abs(windows_y - zone.y) <= border
-                    or abs(windows_y - (zone.y + zone.height)) <= border
-                )
+            self.draw()
 
-                if inside and near_border:
+            return
 
-                    self.selected_zone = zone
-
-                    print("Selected:", zone)
-
-                    self.draw()
-
-                    return
+        # Empty space = create new zone
 
         self.selected_zone = None
-        self.draw()
+        self.dragging_zone = False
 
         self.drag_start_x = event.x
         self.drag_start_y = event.y
 
-        print("Started zone:", self.drag_start_x, self.drag_start_y)
+        print("Creating zone")
 
     def mouse_drag(self, event):
         """
@@ -375,8 +356,6 @@ class ZoneOverlay:
             self.dragging_zone = False
 
             config.save_config(self.zone_manager.monitors)
-
-            print("Saved moved zone:", self.selected_zone)
 
             self.draw()
 
@@ -494,3 +473,37 @@ class ZoneOverlay:
         self.selected_zone = None
 
         self.draw()
+
+    def hit_test(self, canvas_x, canvas_y):
+        """
+        Checks if the mouse is on a zone border.
+
+        Returns:
+            Zone object if border is clicked
+            None otherwise
+        """
+
+        windows_x = canvas_x + self.min_x
+        windows_y = canvas_y + self.min_y
+
+        border = 8
+
+        for monitor in self.monitors:
+            for zone in monitor.zones:
+
+                left = zone.x
+                right = zone.x + zone.width
+                top = zone.y
+                bottom = zone.y + zone.height
+
+                near_border = (
+                    abs(windows_x - left) <= border
+                    or abs(windows_x - right) <= border
+                    or abs(windows_y - top) <= border
+                    or abs(windows_y - bottom) <= border
+                )
+
+                if near_border:
+                    return zone
+
+        return None
