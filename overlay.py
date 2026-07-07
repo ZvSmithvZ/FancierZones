@@ -45,7 +45,7 @@ class ZoneOverlay:
         self.root.attributes("-topmost", True)
 
         # Make overlay semi-transparent
-        self.root.attributes("-alpha", 0.35)
+        # self.root.attributes("-alpha", 0.35)
 
         # ------------------------------------------------------------
         # Transparent background
@@ -54,8 +54,9 @@ class ZoneOverlay:
         # The zone outlines remain visible.
         # ------------------------------------------------------------
 
-        self.root.configure(bg="black")
-        self.root.wm_attributes("-transparentcolor", "black")
+        # self.root.configure(bg="black")
+        # self.root.wm_attributes("-transparentcolor", "black")
+        self.root.configure(bg="red")
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
@@ -129,6 +130,28 @@ class ZoneOverlay:
         self.canvas = tk.Canvas(self.root, bg="black", highlightthickness=0)
 
         self.canvas.pack(fill="both", expand=True)
+        # ------------------------------------------------------------
+        # Mouse editing state
+        #
+        # These store the rectangle currently being drawn.
+        # ------------------------------------------------------------
+
+        self.drag_start_x = None
+        self.drag_start_y = None
+
+        self.current_rectangle = None
+
+        # ------------------------------------------------------------
+        # Bind mouse events
+        #
+        # Button-1 = left mouse button
+        # ------------------------------------------------------------
+
+        self.canvas.bind("<ButtonPress-1>", self.mouse_down)
+
+        self.canvas.bind("<B1-Motion>", self.mouse_drag)
+
+        self.canvas.bind("<ButtonRelease-1>", self.mouse_up)
 
     def draw(self):
 
@@ -206,13 +229,83 @@ class ZoneOverlay:
         self.root.update()
 
     def show(self):
+        """
+        Opens the overlay.
+
+        Does NOT start tkinter mainloop because
+        the application already has its own Windows hook loop.
+        """
 
         self.draw()
 
-        self.root.update()
+        self.root.deiconify()
 
     def update(self):
+        """
+        Gives tkinter time to process:
+        - mouse clicks
+        - mouse movement
+        - redraws
+        """
 
         if self.root:
-            self.draw()
             self.root.update()
+
+    def process_events(self):
+        """
+        Allows Tkinter to process:
+        - mouse clicks
+        - mouse movement
+        - redraw events
+
+        without starting a second event loop.
+        """
+
+        if self.root:
+            self.root.update()
+
+    def mouse_down(self, event):
+        """
+        Starts drawing a new zone.
+        """
+        print("MOUSE DOWN RECEIVED")
+        self.drag_start_x = event.x
+        self.drag_start_y = event.y
+
+        print("Started zone:", self.drag_start_x, self.drag_start_y)
+
+    def mouse_drag(self, event):
+        """
+        Updates the temporary rectangle while dragging.
+        """
+        print("MOUSE DRAG RECEIVED")
+        if self.drag_start_x is None or self.drag_start_y is None:
+            return
+
+        # After the check above, tell Python/type checker
+        # these are definitely numbers.
+        start_x = self.drag_start_x
+        start_y = self.drag_start_y
+
+        # Remove old preview rectangle
+        if self.current_rectangle:
+            self.canvas.delete(self.current_rectangle)
+
+        # Draw new preview rectangle
+        self.current_rectangle = self.canvas.create_rectangle(
+            start_x, start_y, event.x, event.y, outline="yellow", width=3
+        )
+
+    def mouse_up(self, event):
+        """
+        Finishes creating the zone.
+        """
+
+        if self.drag_start_x is None:
+            return
+
+        print("Finished zone:", self.drag_start_x, self.drag_start_y, event.x, event.y)
+
+        # Reset drawing state
+        self.drag_start_x = None
+        self.drag_start_y = None

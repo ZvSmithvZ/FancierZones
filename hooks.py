@@ -425,6 +425,18 @@ def message_loop():
     message queue. Without this loop running, the hooks never actually fire.
     """
     msg = wintypes.MSG()
-    while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
-        user32.TranslateMessage(ctypes.byref(msg))
-        user32.DispatchMessageW(ctypes.byref(msg))
+
+    while True:
+
+        # Process Windows messages if available
+        while user32.PeekMessageW(ctypes.byref(msg), None, 0, 0, 1):
+
+            user32.TranslateMessage(ctypes.byref(msg))
+            user32.DispatchMessageW(ctypes.byref(msg))
+
+        # Allow editor overlay to process tkinter events
+        if zone_manager and zone_manager.editor:
+            editor = zone_manager.editor
+
+            if editor.overlay:
+                editor.overlay.update()
