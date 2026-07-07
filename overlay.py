@@ -1,5 +1,7 @@
 import tkinter as tk
 
+import config
+
 
 class ZoneOverlay:
 
@@ -121,6 +123,15 @@ class ZoneOverlay:
         # Currently selected zone
         # ------------------------------------------------------------
         self.selected_zone = None
+
+        # ------------------------------------------------------------
+        # Moving a selected zone
+        # ------------------------------------------------------------
+
+        self.dragging_zone = False
+
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
 
         # ------------------------------------------------------------
         # Bind mouse events
@@ -275,6 +286,18 @@ class ZoneOverlay:
                     and zone.y <= windows_y <= zone.y + zone.height
                 )
 
+                # adding dragging logic
+                if inside and zone == self.selected_zone:
+
+                    self.dragging_zone = True
+
+                    self.drag_offset_x = windows_x - zone.x
+                    self.drag_offset_y = windows_y - zone.y
+
+                    print("Moving zone")
+
+                    return
+
                 # Is the mouse close to one of the four borders?
                 near_border = (
                     abs(windows_x - zone.x) <= border
@@ -306,10 +329,26 @@ class ZoneOverlay:
         Updates the temporary rectangle while dragging.
         """
         # print("MOUSE DRAG RECEIVED")
+
+        # Convert canvas coordinates to Windows coordinates
+        windows_x = event.x + self.min_x
+        windows_y = event.y + self.min_y
+
+        # Dragging a layout window
+        if self.dragging_zone and self.selected_zone:
+
+            self.selected_zone.x = windows_x - self.drag_offset_x
+            self.selected_zone.y = windows_y - self.drag_offset_y
+
+            self.draw()
+
+            return
+
+        # creating a new zone
         if self.drag_start_x is None or self.drag_start_y is None:
             return
 
-        # After the check above, tell Python/type checker
+        # tell Python/type checker
         # these are definitely numbers.
         start_x = self.drag_start_x
         start_y = self.drag_start_y
@@ -325,11 +364,27 @@ class ZoneOverlay:
 
     def mouse_up(self, event):
         """
-        Finishes creating a zone.
-        Converts the drawn rectangle into
-        a real Zone object.
+        Finishes creating a zone or moving a selected zone.
         """
 
+        # ------------------------------------------------------------
+        # Finished moving an existing zone
+        # ------------------------------------------------------------
+        if self.dragging_zone:
+
+            self.dragging_zone = False
+
+            config.save_config(self.zone_manager.monitors)
+
+            print("Saved moved zone:", self.selected_zone)
+
+            self.draw()
+
+            return
+
+        # ------------------------------------------------------------
+        # Finished creating a new zone
+        # ------------------------------------------------------------
         if self.drag_start_x is None or self.drag_start_y is None:
             return
 
