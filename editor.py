@@ -1,32 +1,46 @@
-# import win32api
-# import win32gui
+from models import Zone
 
-# import config
-# from models import Zone
 
-# class ZoneEditor:
+class ZoneEditor:
 
-#     def __init__(self, zone_manager):
-#         self.zone_manager = zone_manager
+    def __init__(self, zone_manager):
+        self.zone_manager = zone_manager
 
-#     def create_test_zone(self):
-#         """
-#         Temporary test function.
-#         Later this becomes mouse drag logic.
-#         """
+    def add_zone(self, monitor_id, x, y, width, height, assignment=None):
+        """
+        Creates a new zone and adds it to a monitor.
+        """
 
-#         monitor = self.zone_manager.monitors[0]
+        for monitor in self.zone_manager.monitors:
 
-#         monitor.zones.append(
-#             Zone(
-#                 x=100,
-#                 y=100,
-#                 width=500,
-#                 height=500,
-#                 assignment=None
-#             )
-#         )
+            if monitor.id == monitor_id:
 
-#         config.save_config(self.zone_manager.monitors)
+                zone = Zone(x=x, y=y, width=width, height=height, assignment=assignment)
 
-#         print("Created zone")
+                monitor.zones.append(zone)
+
+                print(f"Added zone to {monitor.id}: " f"{x},{y} {width}x{height}")
+
+                return zone
+
+        print(f"Monitor {monitor_id} not found")
+        return None
+
+    def remove_zone(self, monitor_id, zone_index):
+        """
+        Removes a zone by index.
+        """
+
+        for monitor in self.zone_manager.monitors:
+
+            if monitor.id == monitor_id:
+
+                if zone_index < len(monitor.zones):
+
+                    removed = monitor.zones.pop(zone_index)
+
+                    print(f"Removed zone {removed}")
+
+                    return True
+
+        return False
