@@ -10,15 +10,11 @@ class ZoneOverlay:
 
         # ------------------------------------------------------------
         # Find the full Windows virtual desktop bounds
-        #
         # Example with 3 monitors:
-        #
         # DISPLAY3       DISPLAY1       DISPLAY2
         # -1920            0             1920
-        #
         # min_x becomes -1920
         # max_x becomes 3840
-        #
         # This gives us one giant coordinate space.
         # ------------------------------------------------------------
 
@@ -54,27 +50,20 @@ class ZoneOverlay:
         # The black pixels disappear.
         # The zone outlines remain visible.
         # ------------------------------------------------------------
-
         # self.root.configure(bg="black")
         # self.root.wm_attributes("-transparentcolor", "black")
         self.root.configure(bg="gray")
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
-        #
         # IMPORTANT:
-        #
         # Windows coordinates:
-        #
         # DISPLAY3:
         # x = -1920
-        #
         # DISPLAY1:
         # x = 0
-        #
         # DISPLAY2:
         # x = 1920
-        #
         # The overlay starts at min_x.
         # Zone coordinates are converted later.
         # ------------------------------------------------------------
@@ -84,16 +73,7 @@ class ZoneOverlay:
 
         geometry = f"{self.virtual_width}x" f"{self.virtual_height}" "+0+0"
 
-        print("--------------------------------")
-        print("Overlay bounds:")
-        print("min_x:", self.min_x)
-        print("min_y:", self.min_y)
-        print("width:", self.virtual_width)
-        print("height:", self.virtual_height)
-        print("geometry:", geometry)
-        print("--------------------------------")
-
-        print("Initial geometry:", geometry)
+        # print("Initial geometry:", geometry)
         self.root.geometry(geometry)
 
         # Force Tkinter to actually apply the geometry
@@ -104,25 +84,20 @@ class ZoneOverlay:
 
         # ------------------------------------------------------------
         # DEBUG:
-        #
         # This tells us where Windows REALLY placed the overlay.
-        #
         # If this prints:
         #     -1920 0
-        #
         # the overlay is correct.
-        #
         # If it prints:
         #     0 0
-        #
         # Tkinter ignored the negative position.
         # ------------------------------------------------------------
 
-        print("Actual overlay position:")
-        print(self.root.winfo_x(), self.root.winfo_y())
+        # print("Actual overlay position:")
+        # print(self.root.winfo_x(), self.root.winfo_y())
 
-        print("Actual overlay size:")
-        print(self.root.winfo_width(), self.root.winfo_height())
+        # print("Actual overlay size:")
+        # print(self.root.winfo_width(), self.root.winfo_height())
 
         # ------------------------------------------------------------
         # Canvas where zones are drawn
@@ -143,6 +118,11 @@ class ZoneOverlay:
         self.current_rectangle = None
 
         # ------------------------------------------------------------
+        # Currently selected zone
+        # ------------------------------------------------------------
+        self.selected_zone = None
+
+        # ------------------------------------------------------------
         # Bind mouse events
         #
         # Button-1 = left mouse button
@@ -154,16 +134,15 @@ class ZoneOverlay:
 
         self.canvas.bind("<ButtonRelease-1>", self.mouse_up)
 
-    def draw(self):
+        self.root.bind("<Delete>", self.delete_selected_zone)
 
-        print("--------------------------------")
-        print("Drawing zones:")
+    def draw(self):
 
         self.canvas.delete("all")
 
         for monitor in self.monitors:
 
-            print("MONITOR:", monitor.id, "position:", monitor.x, monitor.y)
+            # print("MONITOR:", monitor.id, "position:", monitor.x, monitor.y)
             mx1 = monitor.x - self.min_x
             my1 = monitor.y - self.min_y
 
@@ -213,10 +192,20 @@ class ZoneOverlay:
                 x2 = x1 + zone.width
                 y2 = y1 + zone.height
 
-                print("ZONE:", zone.x, zone.y, "canvas:", x1, y1)
+                # print("ZONE:", zone.x, zone.y, "canvas:", x1, y1)
 
                 # Draw rectangle
-                self.canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=3)
+                outline = "yellow" if zone == self.selected_zone else "red"
+                width = 5 if zone == self.selected_zone else 3
+
+                self.canvas.create_rectangle(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    outline=outline,
+                    width=width,
+                )
 
                 # Label zone size
                 self.canvas.create_text(
@@ -267,9 +256,46 @@ class ZoneOverlay:
 
     def mouse_down(self, event):
         """
-        Starts drawing a new zone.
+        Starts drawing a new zone. Or selecting an existing one
         """
-        print("MOUSE DOWN RECEIVED")
+        # print("MOUSE DOWN RECEIVED")
+        # Convert canvas coordinates to Windows coordinates
+        windows_x = event.x + self.min_x
+        windows_y = event.y + self.min_y
+
+        # Check every zone
+        for monitor in self.monitors:
+            for zone in monitor.zones:
+
+                # Padding of where you can click
+                border = 8
+                # Is the mouse inside the rectangle at all?
+                inside = (
+                    zone.x <= windows_x <= zone.x + zone.width
+                    and zone.y <= windows_y <= zone.y + zone.height
+                )
+
+                # Is the mouse close to one of the four borders?
+                near_border = (
+                    abs(windows_x - zone.x) <= border
+                    or abs(windows_x - (zone.x + zone.width)) <= border
+                    or abs(windows_y - zone.y) <= border
+                    or abs(windows_y - (zone.y + zone.height)) <= border
+                )
+
+                if inside and near_border:
+
+                    self.selected_zone = zone
+
+                    print("Selected:", zone)
+
+                    self.draw()
+
+                    return
+
+        self.selected_zone = None
+        self.draw()
+
         self.drag_start_x = event.x
         self.drag_start_y = event.y
 
@@ -399,3 +425,17 @@ class ZoneOverlay:
                 return monitor
 
         return None
+
+    def delete_selected_zone(self, event=None):
+        """
+        Deletes the currently selected zone.
+        """
+
+        if self.selected_zone is None:
+            return
+
+        self.zone_manager.editor.remove_zone(self.selected_zone)
+
+        self.selected_zone = None
+
+        self.draw()

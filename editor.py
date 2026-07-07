@@ -89,23 +89,22 @@ class ZoneEditor:
         print(f"Monitor {monitor_id} not found")
         return None
 
-    def remove_zone(self, monitor_id, zone_index):
+    def remove_zone(self, zone):
         """
-        Removes a zone by index.
+        Removes a zone object from whichever monitor owns it.
         """
 
         for monitor in self.zone_manager.monitors:
 
-            if monitor.id == monitor_id:
+            if zone in monitor.zones:
 
-                if zone_index < len(monitor.zones):
+                monitor.zones.remove(zone)
 
-                    removed = monitor.zones.pop(zone_index)
-                    # Saving zones to json file
-                    config.save_config(self.zone_manager.monitors)
+                # Save updated configuration
+                config.save_config(self.zone_manager.monitors)
 
-                    print(f"Removed zone {removed}")
+                print(f"Removed zone {zone}")
 
-                    return True
+                return True
 
         return False
