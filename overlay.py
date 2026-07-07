@@ -3,9 +3,10 @@ import tkinter as tk
 
 class ZoneOverlay:
 
-    def __init__(self, monitors):
+    def __init__(self, zone_manager):
 
-        self.monitors = monitors
+        self.zone_manager = zone_manager
+        self.monitors = zone_manager.monitors
 
         # ------------------------------------------------------------
         # Find the full Windows virtual desktop bounds
@@ -21,12 +22,12 @@ class ZoneOverlay:
         # This gives us one giant coordinate space.
         # ------------------------------------------------------------
 
-        self.min_x = min(m.x for m in monitors)
-        self.min_y = min(m.y for m in monitors)
+        self.min_x = min(m.x for m in self.monitors)
+        self.min_y = min(m.y for m in self.monitors)
 
-        self.max_x = max(m.x + m.width for m in monitors)
+        self.max_x = max(m.x + m.width for m in self.monitors)
 
-        self.max_y = max(m.y + m.height for m in monitors)
+        self.max_y = max(m.y + m.height for m in self.monitors)
 
         # Total size of all monitors combined
         self.virtual_width = self.max_x - self.min_x
@@ -56,7 +57,7 @@ class ZoneOverlay:
 
         # self.root.configure(bg="black")
         # self.root.wm_attributes("-transparentcolor", "black")
-        self.root.configure(bg="red")
+        self.root.configure(bg="gray")
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
@@ -127,7 +128,7 @@ class ZoneOverlay:
         # Canvas where zones are drawn
         # ------------------------------------------------------------
 
-        self.canvas = tk.Canvas(self.root, bg="black", highlightthickness=0)
+        self.canvas = tk.Canvas(self.root, bg="gray", highlightthickness=0)
 
         self.canvas.pack(fill="both", expand=True)
         # ------------------------------------------------------------
@@ -278,7 +279,7 @@ class ZoneOverlay:
         """
         Updates the temporary rectangle while dragging.
         """
-        print("MOUSE DRAG RECEIVED")
+        # print("MOUSE DRAG RECEIVED")
         if self.drag_start_x is None or self.drag_start_y is None:
             return
 
@@ -298,14 +299,103 @@ class ZoneOverlay:
 
     def mouse_up(self, event):
         """
-        Finishes creating the zone.
+        Finishes creating a zone.
+        Converts the drawn rectangle into
+        a real Zone object.
         """
 
-        if self.drag_start_x is None:
+        if self.drag_start_x is None or self.drag_start_y is None:
             return
 
-        print("Finished zone:", self.drag_start_x, self.drag_start_y, event.x, event.y)
+        # ------------------------------------------------------------
+        # Normalize drag direction
+        #
+        # Allows dragging:
+        # top-left -> bottom-right
+        # OR
+        # bottom-right -> top-left
+        # ------------------------------------------------------------
 
-        # Reset drawing state
+        canvas_x1 = min(self.drag_start_x, event.x)
+        canvas_y1 = min(self.drag_start_y, event.y)
+
+        canvas_x2 = max(self.drag_start_x, event.x)
+        canvas_y2 = max(self.drag_start_y, event.y)
+
+        width = canvas_x2 - canvas_x1
+        height = canvas_y2 - canvas_y1
+
+        # Ignore accidental tiny clicks
+        if width < 20 or height < 20:
+            print("Zone too small")
+            return
+
+        # ------------------------------------------------------------
+        # Convert canvas coordinates into Windows coordinates
+        # ------------------------------------------------------------
+
+        windows_x, windows_y = self.canvas_to_windows_coords(canvas_x1, canvas_y1)
+
+        print("New zone:", windows_x, windows_y, width, height)
+
+        # ------------------------------------------------------------
+        # Find which monitor this belongs to
+        # ------------------------------------------------------------
+
+        monitor = self.find_monitor_for_zone(windows_x, windows_y)
+
+        if monitor is None:
+            print("No monitor found")
+        else:
+            print("Assigned to monitor:", monitor.id)
+
+            self.zone_manager.editor.add_zone(
+                monitor.id, windows_x, windows_y, width, height
+            )
+
+        # Remove preview rectangle
+        if self.current_rectangle:
+            self.canvas.delete(self.current_rectangle)
+
+            self.current_rectangle = None
+
+        # Reset drag state
         self.drag_start_x = None
         self.drag_start_y = None
+
+        # Redraw zones
+        self.draw()
+
+    def canvas_to_windows_coords(self, x, y):
+        """
+        Converts Tkinter canvas coordinates back into
+        Windows virtual desktop coordinates.
+
+        Example:
+
+        Left monitor:
+            canvas x = 100
+            min_x = -1920
+
+        Windows x:
+            100 + (-1920)
+            = -1820
+        """
+
+        return (x + self.min_x, y + self.min_y)
+
+    def find_monitor_for_zone(self, x, y):
+        """
+        Finds which monitor contains the top-left
+        corner of the new zone.
+        """
+
+        for monitor in self.monitors:
+
+            if (
+                monitor.x <= x < monitor.x + monitor.width
+                and monitor.y <= y < monitor.y + monitor.height
+            ):
+                return monitor
+
+        return None

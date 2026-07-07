@@ -1,3 +1,4 @@
+import config
 from models import Zone
 from overlay import ZoneOverlay
 
@@ -51,7 +52,7 @@ class ZoneEditor:
         Opens the zone editing canvas.
         """
 
-        self.overlay = ZoneOverlay(self.zone_manager.monitors)
+        self.overlay = ZoneOverlay(self.zone_manager)
 
         self.overlay.show()
 
@@ -78,6 +79,8 @@ class ZoneEditor:
                 zone = Zone(x=x, y=y, width=width, height=height, assignment=assignment)
 
                 monitor.zones.append(zone)
+                # Saving zones to json file
+                config.save_config(self.zone_manager.monitors)
 
                 print(f"Added zone to {monitor.id}: " f"{x},{y} {width}x{height}")
 
@@ -98,6 +101,8 @@ class ZoneEditor:
                 if zone_index < len(monitor.zones):
 
                     removed = monitor.zones.pop(zone_index)
+                    # Saving zones to json file
+                    config.save_config(self.zone_manager.monitors)
 
                     print(f"Removed zone {removed}")
 

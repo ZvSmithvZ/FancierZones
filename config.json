@@ -52,7 +52,15 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": []
+            "zones": [
+                {
+                    "x": -1770,
+                    "y": 82,
+                    "width": 625,
+                    "height": 431,
+                    "assignment": null
+                }
+            ]
         }
     ]
 }
