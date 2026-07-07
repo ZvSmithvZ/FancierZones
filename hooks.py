@@ -38,6 +38,7 @@ WM_RBUTTONDOWN = 0x0204
 WM_RBUTTONUP = 0x0205
 
 KEYEVENTF_KEYUP = 0x0002
+INPUT_KEYBOARD = 1
 
 LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
 ULONG_PTR = (
@@ -55,6 +56,27 @@ class MSLLHOOKSTRUCT(ctypes.Structure):
     ]
 
 
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wintypes.WORD),
+        ("wScan", wintypes.WORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ULONG_PTR),
+    ]
+
+
+class INPUT_UNION(ctypes.Union):
+    _fields_ = [("ki", KEYBDINPUT)]
+
+
+class INPUT(ctypes.Structure):
+    _fields_ = [
+        ("type", wintypes.DWORD),
+        ("union", INPUT_UNION),
+    ]
+
+
 MouseProc = ctypes.WINFUNCTYPE(LRESULT, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
 
 user32 = ctypes.windll.user32
@@ -65,6 +87,10 @@ user32.CallNextHookEx.argtypes = [
     wintypes.LPARAM,
 ]
 user32.CallNextHookEx.restype = LRESULT
+
+user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
+user32.SendInput.restype = wintypes.UINT
+
 
 zone_manager: ZoneManager | None = None
 
@@ -87,16 +113,23 @@ def is_win_key_down():
 
 def suppress_start_menu():
     """
-    Sends a real, harmless Ctrl key tap.
+    Sends a real Ctrl down+up via SendInput.
 
-    This does NOT block or fake anything about the Win key itself.
-    It just gives the shell a real "something else happened" signal,
-    which interrupts its "Win was pressed and released alone" check —
-    the actual condition that triggers the Start Menu. Since we never
-    intercept any real key event to do this, nothing can get stuck.
+    This gives the shell a genuine "something else happened" signal
+    between Win-down and Win-up, which interrupts its "Win pressed
+    and released alone" detection — without ever touching a real
+    Win key event, so Win's own state can never get stuck.
     """
-    win32api.keybd_event(VK_CONTROL, 0, 0, 0)  # Ctrl down
-    win32api.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)  # Ctrl up
+    down = INPUT(
+        type=INPUT_KEYBOARD, union=INPUT_UNION(ki=KEYBDINPUT(VK_CONTROL, 0, 0, 0, 0))
+    )
+    up = INPUT(
+        type=INPUT_KEYBOARD,
+        union=INPUT_UNION(ki=KEYBDINPUT(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0, 0)),
+    )
+
+    inputs = (INPUT * 2)(down, up)
+    user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
 
 
 def get_window_under_cursor():
