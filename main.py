@@ -14,6 +14,8 @@ zone_manager = ZoneManager()
 # any saved zones from config.json. To help with new/disconnected monitors
 zone_manager.monitors = config.merge_monitors()
 
+zone_manager.add_zone(zone_manager.monitors[0], 100, 100, 500, 500)
+
 config.save_config(zone_manager.monitors)
 
 # ------------------------------------------------------------

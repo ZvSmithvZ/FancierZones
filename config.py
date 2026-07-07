@@ -7,7 +7,7 @@ from models import Monitor, Zone
 CONFIG_PATH = Path("config.json")
 
 
-def load_config():
+def load_config() -> list[Monitor]:
     """
     Loads config.json and returns a list of Monitor objects.
     """
@@ -74,7 +74,7 @@ def merge_monitors():
     return detected_monitors
 
 
-def save_config(monitors):
+def save_config(monitors: list[Monitor]) -> None:
     """
     Saves the current monitor and zone layout to config.json.
     """

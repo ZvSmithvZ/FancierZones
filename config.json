@@ -13,6 +13,13 @@
                     "width": 1920,
                     "height": 1080,
                     "assignment": null
+                },
+                {
+                    "x": 100,
+                    "y": 100,
+                    "width": 500,
+                    "height": 500,
+                    "assignment": null
                 }
             ]
         },

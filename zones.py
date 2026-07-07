@@ -3,7 +3,7 @@ import win32con
 import win32gui
 
 import windows
-from models import Monitor
+from models import Monitor, Zone
 
 
 # ------------------------Defining Zone Manager Class------------------------
@@ -192,6 +192,17 @@ class ZoneManager:
                 if zone.occupied_hwnd == hwnd:
                     return zone
         return None
+
+    def add_zone(self, monitor, x, y, width, height, assignment=None):
+        """
+        Creates a new zone and adds it to a monitor.
+        """
+
+        zone = Zone(x=x, y=y, width=width, height=height, assignment=assignment)
+
+        monitor.zones.append(zone)
+
+        return zone
 
 
 # ---------------- old function in zonemanager
