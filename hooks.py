@@ -7,39 +7,48 @@ import win32gui
 
 from zones import ZoneManager
 
-# ------------------------------------------------------------
-# Windows Hook Types
+# ============================================================================
+# WHY THE OLD VERSION FAILED
+# ----------------------------------------------------------------------------
+# The Start Menu opens because Explorer listens for a Win key-up event that
+# was NOT paired with anything else. It does NOT care whether some other key
+# (like Ctrl) was tapped before/after/during — that "send a Ctrl tap" trick
+# is a myth on modern Windows and does nothing reliable.
 #
-# We only use a MOUSE hook now. No keyboard hook at all.
+# The only real fix: intercept the Win key at the low-level KEYBOARD hook and
+# physically swallow the key-up event (return 1 instead of calling
+# CallNextHookEx) whenever that Win press was used as part of a combo.
+# If Explorer never receives the key-up message at all, it has nothing to
+# react to, and the Start Menu cannot open — this is exactly how AHK does it
+# under the hood.
 #
-# Why: a keyboard hook that ever blocks (return 1) a real key
-# event can desync Explorer's own internal Win-key tracking,
-# since that tracking is driven by the message stream — if a
-# key-up message never arrives, the shell can end up believing
-# a key is still held even though it's physically been released.
-# That's what caused the "stuck Win key" bug.
-#
-# Instead, we prevent the Start Menu from popping using a
-# different, non-destructive trick: sending a real (but harmless)
-# dummy keystroke — a Ctrl tap — the instant our hotkey fires.
-# This interrupts the shell's "Win pressed-and-released alone"
-# detection without ever blocking or faking any part of the real
-# Win key's own message stream. Nothing about Win's state is
-# ever touched, so it can never get stuck.
-# ------------------------------------------------------------
+# The old code ONLY installed a mouse hook (WH_MOUSE_LL). It could detect
+# and swallow the right-click fine, but it never touched the keyboard event
+# stream, so the Win key-up always reached Explorer untouched. Adding the
+# keyboard hook below is the missing piece.
+# ============================================================================
 
+# ---- Hook type constants ----
+WH_KEYBOARD_LL = 13
 WH_MOUSE_LL = 14
 
+# ---- Virtual key codes we care about ----
 VK_LWIN = 0x5B
 VK_RWIN = 0x5C
-VK_CONTROL = 0x11
 
+# ---- Keyboard hook message constants ----
+# SYSKEYDOWN/UP fire instead of the plain versions when Alt (or in some
+# cases Win) is involved, so we must check for both.
+WM_KEYDOWN = 0x0100
+WM_KEYUP = 0x0101
+WM_SYSKEYDOWN = 0x0104
+WM_SYSKEYUP = 0x0105
+
+# ---- Mouse hook message constants ----
 WM_RBUTTONDOWN = 0x0204
 WM_RBUTTONUP = 0x0205
 
-KEYEVENTF_KEYUP = 0x0002
-INPUT_KEYBOARD = 1
-
+# ---- ctypes plumbing ----
 LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
 ULONG_PTR = (
     ctypes.c_ulonglong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_ulong
@@ -47,6 +56,8 @@ ULONG_PTR = (
 
 
 class MSLLHOOKSTRUCT(ctypes.Structure):
+    """Struct Windows fills in for every low-level mouse hook event."""
+
     _fields_ = [
         ("pt", wintypes.POINT),
         ("mouseData", wintypes.DWORD),
@@ -56,28 +67,21 @@ class MSLLHOOKSTRUCT(ctypes.Structure):
     ]
 
 
-class KEYBDINPUT(ctypes.Structure):
+class KBDLLHOOKSTRUCT(ctypes.Structure):
+    """Struct Windows fills in for every low-level keyboard hook event."""
+
     _fields_ = [
-        ("wVk", wintypes.WORD),
-        ("wScan", wintypes.WORD),
-        ("dwFlags", wintypes.DWORD),
+        ("vkCode", wintypes.DWORD),
+        ("scanCode", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
         ("time", wintypes.DWORD),
         ("dwExtraInfo", ULONG_PTR),
     ]
 
 
-class INPUT_UNION(ctypes.Union):
-    _fields_ = [("ki", KEYBDINPUT)]
-
-
-class INPUT(ctypes.Structure):
-    _fields_ = [
-        ("type", wintypes.DWORD),
-        ("union", INPUT_UNION),
-    ]
-
-
-MouseProc = ctypes.WINFUNCTYPE(LRESULT, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
+# Hook callback function signatures (both mouse and keyboard low-level hooks
+# use this same shape: nCode, wParam, lParam -> LRESULT)
+HookProc = ctypes.WINFUNCTYPE(LRESULT, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
 
 user32 = ctypes.windll.user32
 user32.CallNextHookEx.argtypes = [
@@ -87,100 +91,170 @@ user32.CallNextHookEx.argtypes = [
     wintypes.LPARAM,
 ]
 user32.CallNextHookEx.restype = LRESULT
+user32.SetWindowsHookExW.restype = wintypes.HHOOK
+user32.SetWindowsHookExW.argtypes = [
+    ctypes.c_int,
+    HookProc,
+    wintypes.HINSTANCE,
+    wintypes.DWORD,
+]
 
-user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
-user32.SendInput.restype = wintypes.UINT
-
-
+# ---- Shared state ----
 zone_manager: ZoneManager | None = None
 
-# ------------------------------------------------------------
-# combo_in_progress:
-#     True from the moment we swallow a Win+RightButtonDown,
-#     until we've also swallowed the matching RightButtonUp.
-#     This is what lets us block BOTH halves of the click so
-#     no context menu appears.
-# ------------------------------------------------------------
-
+# True from the moment we detect Win+RightClick down, until we've swallowed
+# the matching RBUTTONUP *and* the matching Win key-up. Both hooks read/write
+# this, which is why it's a plain module-level flag rather than something
+# local to either hook function.
 combo_in_progress = False
+
+# Tracks physical Win key state purely from the keyboard hook itself.
+# (We keep using win32api.GetAsyncKeyState as a secondary check too, but the
+# keyboard hook is the source of truth for suppression decisions.)
+win_key_down = False
 
 
 def is_win_key_down():
+    """Secondary/independent check via the Windows API, used by the mouse hook."""
     left = win32api.GetAsyncKeyState(VK_LWIN) & 0x8000
     right = win32api.GetAsyncKeyState(VK_RWIN) & 0x8000
-    return bool(left or right)
-
-
-def suppress_start_menu():
-    """
-    Sends a real Ctrl down+up via SendInput.
-
-    This gives the shell a genuine "something else happened" signal
-    between Win-down and Win-up, which interrupts its "Win pressed
-    and released alone" detection — without ever touching a real
-    Win key event, so Win's own state can never get stuck.
-    """
-    down = INPUT(
-        type=INPUT_KEYBOARD, union=INPUT_UNION(ki=KEYBDINPUT(VK_CONTROL, 0, 0, 0, 0))
-    )
-    up = INPUT(
-        type=INPUT_KEYBOARD,
-        union=INPUT_UNION(ki=KEYBDINPUT(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0, 0)),
-    )
-
-    inputs = (INPUT * 2)(down, up)
-    user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
+    result = bool(left or right)
+    print(f"[debug] is_win_key_down -> {result}")
+    return result
 
 
 def get_window_under_cursor():
     x, y = win32api.GetCursorPos()
     hwnd = win32gui.WindowFromPoint((x, y))
-    return win32gui.GetAncestor(hwnd, win32con.GA_ROOT)
+    root = win32gui.GetAncestor(hwnd, win32con.GA_ROOT)
+    print(f"[debug] window under cursor: hwnd={hwnd}, root={root}")
+    return root
 
 
+# ============================================================================
+# KEYBOARD HOOK
+# ============================================================================
+def low_level_keyboard_proc(nCode, wParam, lParam):
+    """
+    Runs for every keyboard event system-wide, before any application
+    (including Explorer) sees it. Returning 1 here means "swallow this
+    event" — Explorer/the focused app never receives it.
+    """
+    global win_key_down, combo_in_progress
+
+    if nCode == 0:
+        kb = ctypes.cast(lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
+
+        if kb.vkCode in (VK_LWIN, VK_RWIN):
+            if wParam in (WM_KEYDOWN, WM_SYSKEYDOWN):
+                if not win_key_down:
+                    print("[debug] WIN key DOWN")
+                win_key_down = True
+
+            elif wParam in (WM_KEYUP, WM_SYSKEYUP):
+                print(f"[debug] WIN key UP, combo_in_progress={combo_in_progress}")
+                win_key_down = False
+
+                if combo_in_progress:
+                    # This is the actual fix: swallow the Win key-up itself
+                    # so Explorer never sees it and can't open the Start Menu.
+                    print("[debug] -> swallowing WIN key-up to suppress Start Menu")
+                    combo_in_progress = False
+                    return 1
+
+    return user32.CallNextHookEx(None, nCode, wParam, lParam)
+
+
+# ============================================================================
+# MOUSE HOOK
+# ============================================================================
 def low_level_mouse_proc(nCode, wParam, lParam):
     global combo_in_progress
 
     if nCode == 0:
 
-        if wParam == WM_RBUTTONDOWN and is_win_key_down():
-            print("WIN + RIGHT CLICK (down)")
-            combo_in_progress = True
+        if wParam == WM_RBUTTONDOWN:
+            print("[debug] WM_RBUTTONDOWN received")
+            if is_win_key_down():
+                print("[debug] -> WIN + RIGHT CLICK DOWN detected, handling combo")
+                combo_in_progress = True
 
-            suppress_start_menu()  # do this immediately, before anything else
+                if zone_manager:
+                    print("[debug] calling zone_manager.tile_under_cursor()")
+                    zone_manager.tile_under_cursor()
+                else:
+                    print("[debug] zone_manager is None!")
 
-            if zone_manager:
-                zone_manager.tile_under_cursor()
-            else:
-                print("Zone manager missing")
+                print("[debug] swallowing RBUTTONDOWN")
+                return 1  # stop the app under the cursor from seeing the right-click
 
-            return 1  # swallow the down-half of the click
-
-        if wParam == WM_RBUTTONUP and combo_in_progress:
-            print("WIN + RIGHT CLICK (up) - swallowing to prevent context menu")
-            combo_in_progress = False
-            return 1  # swallow the up-half too, so no context menu appears
+        if wParam == WM_RBUTTONUP:
+            print(
+                f"[debug] WM_RBUTTONUP received, combo_in_progress={combo_in_progress}"
+            )
+            if combo_in_progress:
+                print("[debug] swallowing RBUTTONUP (matching combo down)")
+                # NOTE: we deliberately do NOT reset combo_in_progress here.
+                # It stays True until the keyboard hook consumes it on the
+                # Win key-up. That's what makes the two hooks cooperate:
+                # mouse hook swallows the click, keyboard hook swallows the
+                # key-up that would otherwise trigger the Start Menu.
+                return 1
 
     return user32.CallNextHookEx(None, nCode, wParam, lParam)
+
+
+# Keep strong references alive globally — ctypes does NOT keep a reference
+# to CFUNCTYPE callbacks, so if these get garbage collected the hook will
+# silently stop working or crash.
+_keyboard_hook_proc = HookProc(low_level_keyboard_proc)
+_mouse_hook_proc = HookProc(low_level_mouse_proc)
 
 
 def install_hooks(manager: ZoneManager):
     global zone_manager
     zone_manager = manager
 
-    mouse_callback = MouseProc(low_level_mouse_proc)
-    mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, mouse_callback, None, 0)
+    keyboard_hook = user32.SetWindowsHookExW(
+        WH_KEYBOARD_LL, _keyboard_hook_proc, None, 0
+    )
+    if not keyboard_hook:
+        raise OSError(
+            f"Failed to install keyboard hook. Error: {ctypes.GetLastError()}"
+        )
+    print(f"[debug] Keyboard hook installed (handle={keyboard_hook})")
 
+    mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, _mouse_hook_proc, None, 0)
     if not mouse_hook:
+        # Clean up the keyboard hook if the mouse hook fails, so we don't
+        # leak a hook if this function raises.
+        user32.UnhookWindowsHookEx(keyboard_hook)
         raise OSError(f"Failed to install mouse hook. Error: {ctypes.GetLastError()}")
+    print(f"[debug] Mouse hook installed (handle={mouse_hook})")
 
-    print(f"Mouse hook installed (handle={mouse_hook})")
-
+    install_hooks.keyboard_hook = keyboard_hook
     install_hooks.mouse_hook = mouse_hook
-    install_hooks.mouse_callback = mouse_callback
+
+
+def unhook_hooks():
+    """Call this in a finally block on shutdown to cleanly remove both hooks."""
+    kb_hook = getattr(install_hooks, "keyboard_hook", None)
+    ms_hook = getattr(install_hooks, "mouse_hook", None)
+
+    if kb_hook:
+        user32.UnhookWindowsHookEx(kb_hook)
+        print("[debug] Keyboard hook removed")
+    if ms_hook:
+        user32.UnhookWindowsHookEx(ms_hook)
+        print("[debug] Mouse hook removed")
 
 
 def message_loop():
+    """
+    Low-level hooks require a live message pump on the same thread that
+    installed them — Windows delivers hook events through the thread's
+    message queue. Without this loop running, the hooks never actually fire.
+    """
     msg = wintypes.MSG()
     while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
         user32.TranslateMessage(ctypes.byref(msg))
