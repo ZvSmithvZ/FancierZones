@@ -8,10 +8,17 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 2020,
-                    "y": 100,
-                    "width": 500,
-                    "height": 500,
+                    "x": 2306,
+                    "y": 133,
+                    "width": 314,
+                    "height": 717,
+                    "assignment": null
+                },
+                {
+                    "x": 2911,
+                    "y": 168,
+                    "width": 744,
+                    "height": 532,
                     "assignment": null
                 }
             ]
@@ -24,17 +31,17 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 100,
-                    "y": 100,
-                    "width": 800,
-                    "height": 700,
-                    "assignment": "notepad.exe"
+                    "x": 306,
+                    "y": 183,
+                    "width": 700,
+                    "height": 662,
+                    "assignment": null
                 },
                 {
-                    "x": 1085,
-                    "y": 377,
-                    "width": 631,
-                    "height": 546,
+                    "x": 1217,
+                    "y": 287,
+                    "width": 488,
+                    "height": 534,
                     "assignment": null
                 }
             ]
@@ -47,17 +54,17 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": -1537,
-                    "y": 53,
-                    "width": 483,
-                    "height": 419,
+                    "x": -1865,
+                    "y": 55,
+                    "width": 663,
+                    "height": 595,
                     "assignment": null
                 },
                 {
-                    "x": -841,
-                    "y": 224,
-                    "width": 680,
-                    "height": 572,
+                    "x": -879,
+                    "y": 214,
+                    "width": 566,
+                    "height": 625,
                     "assignment": null
                 }
             ]

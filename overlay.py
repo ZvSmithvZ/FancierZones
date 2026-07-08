@@ -47,14 +47,20 @@ class ZoneOverlay:
         # self.root.attributes("-alpha", 0.35)
 
         # ------------------------------------------------------------
-        # Transparent background
+        # Overlay background
         #
-        # The black pixels disappear.
-        # The zone outlines remain visible.
+        # Use alpha transparency so:
+        # - Desktop remains visible
+        # - Mouse input still works
+        # - Editor can capture clicks/drags
         # ------------------------------------------------------------
-        # self.root.configure(bg="black")
-        # self.root.wm_attributes("-transparentcolor", "black")
-        self.root.configure(bg="gray")
+
+        self.root.configure(bg="black")
+
+        # Adjust this value:
+        # 0.0 = invisible
+        # 1.0 = fully opaque
+        self.root.attributes("-alpha", 0.25)
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
@@ -105,8 +111,7 @@ class ZoneOverlay:
         # Canvas where zones are drawn
         # ------------------------------------------------------------
 
-        self.canvas = tk.Canvas(self.root, bg="gray", highlightthickness=0)
-
+        self.canvas = tk.Canvas(self.root, bg="black", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
         # ------------------------------------------------------------
         # Mouse editing state
@@ -160,12 +165,7 @@ class ZoneOverlay:
             mx2 = mx1 + monitor.width
             my2 = my1 + monitor.height
             self.canvas.create_rectangle(
-                mx1,
-                my1,
-                mx2,
-                my2,
-                outline="blue",
-                width=5,
+                mx1, my1, mx2, my2, outline="cyan", width=2, fill=""
             )
 
             self.canvas.create_text(
@@ -209,9 +209,11 @@ class ZoneOverlay:
                 if zone == self.selected_zone:
                     outline = "yellow"
                     width = 5
+                    fill = "gray40"
                 else:
                     outline = "red"
                     width = 3
+                    fill = "gray20"
 
                 self.canvas.create_rectangle(
                     x1,
@@ -220,6 +222,8 @@ class ZoneOverlay:
                     y2,
                     outline=outline,
                     width=width,
+                    fill=fill,
+                    stipple="gray50",
                 )
 
                 # Label zone size
