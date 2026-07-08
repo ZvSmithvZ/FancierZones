@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 
 
 class HandleType(Enum):
@@ -6,20 +6,18 @@ class HandleType(Enum):
     Which part of a zone the user is interacting with.
     """
 
-    NONE = auto()
+    NONE = 0
 
-    MOVE = auto()
+    MOVE = 1
 
-    LEFT = auto()
-    RIGHT = auto()
-    TOP = auto()
-    BOTTOM = auto()
-
-    TOP_LEFT = auto()
-    TOP_RIGHT = auto()
-
-    BOTTOM_LEFT = auto()
-    BOTTOM_RIGHT = auto()
+    TOP_LEFT = 2
+    TOP = 3
+    TOP_RIGHT = 4
+    LEFT = 5
+    RIGHT = 6
+    BOTTOM_LEFT = 7
+    BOTTOM = 8
+    BOTTOM_RIGHT = 9
 
 
 class EditorMode(Enum):
@@ -27,10 +25,10 @@ class EditorMode(Enum):
     Current editor action.
     """
 
-    IDLE = auto()
+    IDLE = 0
 
-    CREATING = auto()
+    CREATING = 1
 
-    MOVING = auto()
+    MOVING = 2
 
-    RESIZING = auto()
+    RESIZING = 3

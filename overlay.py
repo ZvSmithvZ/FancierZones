@@ -132,6 +132,8 @@ class ZoneOverlay:
         self.canvas.bind("<B1-Motion>", self.mouse_drag)
         self.canvas.bind("<ButtonRelease-1>", self.mouse_up)
         self.root.bind("<Delete>", self.delete_selected_zone)
+        # Hover detection
+        self.canvas.bind("<Motion>", self.mouse_move)
 
     def draw(self):
 
@@ -172,7 +174,7 @@ class ZoneOverlay:
                 y2 = y1 + zone.height
 
                 # print("ZONE:", zone.x, zone.y, "canvas:", x1, y1)
-
+                # ------------------------------------------------------
                 # Draw rectangle
                 if zone == self.selected_zone:
                     outline = "yellow"
@@ -194,11 +196,12 @@ class ZoneOverlay:
                     stipple="gray50",
                 )
 
+                # ------------------------------------------------
                 # Draw move handle
-                handle_size = 12
+                handle_size = 18
 
                 handle_x = (x1 + x2) / 2
-                handle_y = y1
+                handle_y = y1 - 20
 
                 self.canvas.create_oval(
                     handle_x - handle_size / 2,
@@ -210,6 +213,7 @@ class ZoneOverlay:
                     width=2,
                 )
 
+                # ------------------------------------------------
                 # Label zone size
                 self.canvas.create_text(
                     x1 + 10,
@@ -218,6 +222,40 @@ class ZoneOverlay:
                     anchor="nw",
                     fill="white",
                 )
+
+                # Drawing resize indicators for selected zones
+                if zone == self.selected_zone:
+
+                    indicator_size = 10
+                    indicator_color = "white"
+
+                    # Middle points
+                    mid_x = (x1 + x2) / 2
+                    mid_y = (y1 + y2) / 2
+
+                    resize_points = [
+                        # corners
+                        (x1, y1),
+                        (x2, y1),
+                        (x1, y2),
+                        (x2, y2),
+                        # sides
+                        (mid_x, y1),
+                        (mid_x, y2),
+                        (x1, mid_y),
+                        (x2, mid_y),
+                    ]
+
+                    for px, py in resize_points:
+
+                        self.canvas.create_rectangle(
+                            px - indicator_size / 2,
+                            py - indicator_size / 2,
+                            px + indicator_size / 2,
+                            py + indicator_size / 2,
+                            fill=indicator_color,
+                            outline="black",
+                        )
 
         self.root.update()
 
@@ -264,7 +302,7 @@ class ZoneOverlay:
         # Moving/ selecting existing zone branch
         # M1 over selecting a zone area
         if hit:
-            print("Border selected:", hit)
+            # print("Border selected:", hit)
             handle, zone = hit
 
             self.selected_zone = zone
@@ -284,14 +322,11 @@ class ZoneOverlay:
                 self.drag_offset_x = windows_x - zone.x
                 self.drag_offset_y = windows_y - zone.y
 
-                # we're not creating if we are moving so we delete these
-                # self.create_start_x = event.x
-                # self.create_start_y = event.y
+            elif handle != HandleType.NONE:
+                self.editor_mode = EditorMode.RESIZING
 
-                # indented these,,,, not sure if supposed to
-                self.draw()
-
-                return
+            self.draw()
+            return
         # ------------------------------------------------------------------
         # CREATION BRANCH
         # M1 in Empty space = create new zone
@@ -320,6 +355,127 @@ class ZoneOverlay:
         # Convert canvas coordinates to Windows coordinates
         windows_x = event.x + self.min_x
         windows_y = event.y + self.min_y
+
+        # ------------------------------------------------------------
+        # Resizing an existing zone
+        # ------------------------------------------------------------
+        if self.editor_mode == EditorMode.RESIZING:
+
+            if self.selected_zone is None:
+                return
+
+            zone = self.selected_zone
+            # setting minimum size for zone width and height
+            min_size = 20
+
+            if self.active_handle == HandleType.TOP:
+
+                # new_height = (zone.y + zone.height) - windows_y
+
+                # zone.y = windows_y
+                # zone.height = new_height
+
+                new_height = (zone.y + zone.height) - windows_y
+
+                if new_height >= min_size:
+
+                    zone.y = windows_y
+                    zone.height = new_height
+
+            elif self.active_handle == HandleType.RIGHT:
+
+                # zone.width = windows_x - zone.x
+                zone.width = max(min_size, windows_x - zone.x)
+
+            elif self.active_handle == HandleType.BOTTOM:
+
+                # zone.height = windows_y - zone.y
+                zone.height = max(min_size, windows_y - zone.y)
+
+            elif self.active_handle == HandleType.LEFT:
+
+                # new_width = (zone.x + zone.width) - windows_x
+
+                # zone.x = windows_x
+                # zone.width = new_width
+
+                new_width = (zone.x + zone.width) - windows_x
+
+                if new_width >= min_size:
+
+                    zone.x = windows_x
+                    zone.width = new_width
+
+            elif self.active_handle == HandleType.TOP_LEFT:
+
+                old_right = zone.x + zone.width
+                old_bottom = zone.y + zone.height
+
+                # zone.x = windows_x
+                # zone.y = windows_y
+
+                # zone.width = old_right - zone.x
+                # zone.height = old_bottom - zone.y
+
+                new_width = old_right - windows_x
+                new_height = old_bottom - windows_y
+
+                if new_width >= min_size and new_height >= min_size:
+
+                    zone.x = windows_x
+                    zone.y = windows_y
+
+                    zone.width = new_width
+                    zone.height = new_height
+
+            elif self.active_handle == HandleType.TOP_RIGHT:
+
+                old_bottom = zone.y + zone.height
+
+                # zone.y = windows_y
+                # zone.width = windows_x - zone.x
+                # zone.height = old_bottom - zone.y
+
+                new_width = windows_x - zone.x
+                new_height = old_bottom - windows_y
+
+                if new_width >= min_size and new_height >= min_size:
+
+                    zone.y = windows_y
+
+                    zone.width = new_width
+                    zone.height = new_height
+
+            elif self.active_handle == HandleType.BOTTOM_RIGHT:
+
+                # zone.width = windows_x - zone.x
+                # zone.height = windows_y - zone.y
+
+                zone.width = max(min_size, windows_x - zone.x)
+
+                zone.height = max(min_size, windows_y - zone.y)
+
+            elif self.active_handle == HandleType.BOTTOM_LEFT:
+
+                old_right = zone.x + zone.width
+
+                # zone.x = windows_x
+                # zone.width = old_right - zone.x
+                # zone.height = windows_y - zone.y
+
+                new_width = old_right - windows_x
+                new_height = windows_y - zone.y
+
+                if new_width >= min_size and new_height >= min_size:
+
+                    zone.x = windows_x
+
+                    zone.width = new_width
+                    zone.height = new_height
+
+            self.draw()
+
+            return
 
         # -------------------------------------------------------------
         # Moving/Dragging an existing layout window
@@ -379,15 +535,38 @@ class ZoneOverlay:
             return
 
         # ------------------------------------------------------------
+        # Finished resizing an existing zone
+        # ------------------------------------------------------------
+        if self.editor_mode == EditorMode.RESIZING:
+
+            print(
+                "FINISHED RESIZE:",
+                # self.selected_zone.x,
+                # self.selected_zone.y,
+                # self.selected_zone.width,
+                # self.selected_zone.height
+            )
+
+            config.save_config(self.zone_manager.monitors)
+
+            self.editor_mode = EditorMode.IDLE
+            self.active_handle = HandleType.NONE
+
+            self.draw()
+
+            return
+        # ------------------------------------------------------------
         # Finished creating a new zone
         # ------------------------------------------------------------
 
-        if self.editor_mode != EditorMode.CREATING:
-            return
-        if self.create_start_x is None or self.create_start_y is None:
-            return
+        # if self.editor_mode != EditorMode.CREATING:
+        #     return
+        # if self.create_start_x is None or self.create_start_y is None:
+        #     return
 
         if self.editor_mode == EditorMode.CREATING:
+            if self.create_start_x is None or self.create_start_y is None:
+                return
             # ------------------------------------------------------------
             # Normalize drag direction
             # Allows dragging:top-left -> bottom-right
@@ -505,24 +684,86 @@ class ZoneOverlay:
     def get_handle_at(self, canvas_x, canvas_y):
         """
         Checks if the mouse is on a zone edit handle.
-        Returns:
+        Returns:  (HandleType, Zone)
             Zone object if handle is clicked
             None otherwise
         """
         windows_x = canvas_x + self.min_x
         windows_y = canvas_y + self.min_y
 
-        handle_radius = 8
+        handle_size = 12
         for monitor in self.monitors:
             for zone in monitor.zones:
+                left = zone.x
+                right = zone.x + zone.width
+                top = zone.y
+                bottom = zone.y + zone.height
 
-                handle_x = zone.x + zone.width / 2
-                handle_y = zone.y
+                center_x = left + zone.width / 2
+                center_y = top + zone.height / 2
+
+                # ------------------------------------------------
+                # Move handle
+                # ------------------------------------------------
+
+                move_x = center_x
+                move_y = top - 10
 
                 if (
-                    abs(windows_x - handle_x) <= handle_radius
-                    and abs(windows_y - handle_y) <= handle_radius
+                    abs(windows_x - move_x) <= handle_size
+                    and abs(windows_y - move_y) <= handle_size
                 ):
                     return (HandleType.MOVE, zone)
 
+                # ------------------------------------------------
+                # Resize handles
+                # ------------------------------------------------
+
+                handles = {
+                    HandleType.TOP_LEFT: (left, top),
+                    HandleType.TOP: (center_x, top),
+                    HandleType.TOP_RIGHT: (right, top),
+                    HandleType.LEFT: (left, center_y),
+                    HandleType.RIGHT: (right, center_y),
+                    HandleType.BOTTOM_LEFT: (left, bottom),
+                    HandleType.BOTTOM: (center_x, bottom),
+                    HandleType.BOTTOM_RIGHT: (right, bottom),
+                }
+
+                for handle, (hx, hy) in handles.items():
+
+                    if (
+                        abs(windows_x - hx) <= handle_size
+                        and abs(windows_y - hy) <= handle_size
+                    ):
+                        return (handle, zone)
+
         return None
+
+    def mouse_move(self, event):
+        """
+        Changes the mouse cursor depending on
+        what editor handle is under the mouse.
+        """
+
+        hit = self.get_handle_at(event.x, event.y)
+
+        if hit is None:
+            self.root.configure(cursor="")
+            return
+
+        handle, zone = hit
+
+        cursor_map = {
+            HandleType.MOVE: "fleur",
+            HandleType.TOP_LEFT: "size_nw_se",
+            HandleType.TOP: "size_ns",
+            HandleType.TOP_RIGHT: "size_ne_sw",
+            HandleType.LEFT: "size_we",
+            HandleType.RIGHT: "size_we",
+            HandleType.BOTTOM_LEFT: "size_ne_sw",
+            HandleType.BOTTOM: "size_ns",
+            HandleType.BOTTOM_RIGHT: "size_nw_se",
+        }
+
+        self.root.configure(cursor=cursor_map.get(handle, ""))
