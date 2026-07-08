@@ -8,8 +8,8 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 2306,
-                    "y": 133,
+                    "x": 2296,
+                    "y": 131,
                     "width": 314,
                     "height": 717,
                     "assignment": null
@@ -31,8 +31,8 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 306,
-                    "y": 183,
+                    "x": 84,
+                    "y": 70,
                     "width": 700,
                     "height": 662,
                     "assignment": null
@@ -54,17 +54,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": -1865,
-                    "y": 55,
-                    "width": 663,
-                    "height": 595,
-                    "assignment": null
-                },
-                {
-                    "x": -879,
-                    "y": 214,
-                    "width": 566,
-                    "height": 625,
+                    "x": -893,
+                    "y": 484,
+                    "width": 767,
+                    "height": 454,
                     "assignment": null
                 }
             ]

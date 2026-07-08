@@ -1,6 +1,7 @@
 import tkinter as tk
 
 import config
+from enums import EditorMode, HandleType
 
 
 class ZoneOverlay:
@@ -10,21 +11,21 @@ class ZoneOverlay:
         self.zone_manager = zone_manager
         self.monitors = zone_manager.monitors
 
+        # setting enum variables
+        self.editor_mode = EditorMode.IDLE
+        self.active_handle = HandleType.NONE
         # ------------------------------------------------------------
         # Find the full Windows virtual desktop bounds
         # Example with 3 monitors:
         # DISPLAY3       DISPLAY1       DISPLAY2
         # -1920            0             1920
-        # min_x becomes -1920
-        # max_x becomes 3840
+        # min_x becomes -1920, max_x becomes 3840
         # This gives us one giant coordinate space.
         # ------------------------------------------------------------
 
         self.min_x = min(m.x for m in self.monitors)
         self.min_y = min(m.y for m in self.monitors)
-
         self.max_x = max(m.x + m.width for m in self.monitors)
-
         self.max_y = max(m.y + m.height for m in self.monitors)
 
         # Total size of all monitors combined
@@ -34,17 +35,11 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         # Create overlay window
         # ------------------------------------------------------------
-
         self.root = tk.Tk()
-
         # Remove normal window borders/title bar
         self.root.overrideredirect(True)
-
         # Keep overlay above everything
         self.root.attributes("-topmost", True)
-
-        # Make overlay semi-transparent
-        # self.root.attributes("-alpha", 0.35)
 
         # ------------------------------------------------------------
         # Overlay background
@@ -54,24 +49,20 @@ class ZoneOverlay:
         # - Mouse input still works
         # - Editor can capture clicks/drags
         # ------------------------------------------------------------
-
         self.root.configure(bg="black")
-
+        # Make overlay semi-transparent
         # Adjust this value:
         # 0.0 = invisible
         # 1.0 = fully opaque
-        self.root.attributes("-alpha", 0.25)
+        self.root.attributes("-alpha", 0.35)
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
         # IMPORTANT:
         # Windows coordinates:
-        # DISPLAY3:
-        # x = -1920
-        # DISPLAY1:
-        # x = 0
-        # DISPLAY2:
-        # x = 1920
+        # DISPLAY3: x = -1920
+        # DISPLAY1: x = 0
+        # DISPLAY2: x = 1920
         # The overlay starts at min_x.
         # Zone coordinates are converted later.
         # ------------------------------------------------------------
@@ -93,63 +84,53 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         # DEBUG:
         # This tells us where Windows REALLY placed the overlay.
-        # If this prints:
-        #     -1920 0
+        # If this prints:   -1920 0
         # the overlay is correct.
-        # If it prints:
-        #     0 0
+        # If it prints: 0 0
         # Tkinter ignored the negative position.
         # ------------------------------------------------------------
-
         # print("Actual overlay position:")
         # print(self.root.winfo_x(), self.root.winfo_y())
-
         # print("Actual overlay size:")
         # print(self.root.winfo_width(), self.root.winfo_height())
-
         # ------------------------------------------------------------
         # Canvas where zones are drawn
         # ------------------------------------------------------------
-
         self.canvas = tk.Canvas(self.root, bg="black", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
         # ------------------------------------------------------------
         # Mouse editing state
-        #
         # These store the rectangle currently being drawn.
+        # Canvas position where the user started drawing a new zone.
+        # Used only while creating.
         # ------------------------------------------------------------
-
-        self.drag_start_x = None
-        self.drag_start_y = None
-
+        self.create_start_x = None
+        self.create_start_y = None
         self.current_rectangle = None
 
         # ------------------------------------------------------------
-        # Currently selected zone
+        # Setting no currently selected zone
         # ------------------------------------------------------------
         self.selected_zone = None
-
         # ------------------------------------------------------------
-        # Moving a selected zone
+        # Setting none for moving a selected zone and offset to zero for where mouse clicked
         # ------------------------------------------------------------
+        # Old variable. Now using enums.py
+        # self.dragging_zone = False
 
-        self.dragging_zone = False
-
+        # Distance from the mouse cursorto the zone's upper-left corner.
+        # Keeps the zone from jumping when dragging starts.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
         # ------------------------------------------------------------
         # Bind mouse events
-        #
         # Button-1 = left mouse button
         # ------------------------------------------------------------
 
         self.canvas.bind("<ButtonPress-1>", self.mouse_down)
-
         self.canvas.bind("<B1-Motion>", self.mouse_drag)
-
         self.canvas.bind("<ButtonRelease-1>", self.mouse_up)
-
         self.root.bind("<Delete>", self.delete_selected_zone)
 
     def draw(self):
@@ -179,22 +160,9 @@ class ZoneOverlay:
 
                 # ----------------------------------------------------
                 # Convert absolute Windows coordinates
-                #
-                # Example:
-                #
-                # Monitor 2 zone:
-                #
-                # x = 2120
-                #
-                # Overlay starts at:
-                #
-                # min_x = -1920
-                #
-                # Canvas coordinate:
-                #
-                # 2120 - (-1920)
-                # = 4040
-                #
+                # Example: Monitor 2 zone: x = 2120
+                # Overlay starts at min_x = -1920
+                # Canvas coordinate: 2120 - (-1920) = 4040
                 # ----------------------------------------------------
 
                 x1 = zone.x - self.min_x
@@ -224,6 +192,22 @@ class ZoneOverlay:
                     width=width,
                     fill=fill,
                     stipple="gray50",
+                )
+
+                # Draw move handle
+                handle_size = 12
+
+                handle_x = (x1 + x2) / 2
+                handle_y = y1
+
+                self.canvas.create_oval(
+                    handle_x - handle_size / 2,
+                    handle_y - handle_size / 2,
+                    handle_x + handle_size / 2,
+                    handle_y + handle_size / 2,
+                    fill="dodgerblue",
+                    outline="white",
+                    width=2,
                 )
 
                 # Label zone size
@@ -275,68 +259,96 @@ class ZoneOverlay:
 
     def mouse_down(self, event):
 
-        windows_x = event.x + self.min_x
-        windows_y = event.y + self.min_y
-
-        zone = self.hit_test(event.x, event.y)
-
-        if zone:
-
-            print("Border selected:", zone)
+        hit = self.get_handle_at(event.x, event.y)
+        # ---------------------------------------------------------------
+        # Moving/ selecting existing zone branch
+        # M1 over selecting a zone area
+        if hit:
+            print("Border selected:", hit)
+            handle, zone = hit
 
             self.selected_zone = zone
+            self.active_handle = handle
 
-            # Prepare for possible movement
-            self.dragging_zone = True
+            if handle == HandleType.MOVE:
+                # fixing the select staying yellow when drawing a new zone
+                # self.draw()
 
-            self.drag_offset_x = windows_x - zone.x
-            self.drag_offset_y = windows_y - zone.y
+                self.editor_mode = EditorMode.MOVING
 
-            self.drag_start_x = event.x
-            self.drag_start_y = event.y
+                # Convert canvas coordinates to Windows coordinates
+                windows_x = event.x + self.min_x
+                windows_y = event.y + self.min_y
 
-            self.draw()
+                # tells us where inside the zone we grabbed it at
+                self.drag_offset_x = windows_x - zone.x
+                self.drag_offset_y = windows_y - zone.y
 
-            return
+                # we're not creating if we are moving so we delete these
+                # self.create_start_x = event.x
+                # self.create_start_y = event.y
 
-        # Empty space = create new zone
+                # indented these,,,, not sure if supposed to
+                self.draw()
+
+                return
+        # ------------------------------------------------------------------
+        # CREATION BRANCH
+        # M1 in Empty space = create new zone
 
         self.selected_zone = None
-        self.dragging_zone = False
+        self.active_handle = HandleType.NONE
 
-        self.drag_start_x = event.x
-        self.drag_start_y = event.y
+        self.editor_mode = EditorMode.CREATING
+
+        self.create_start_x = event.x
+        self.create_start_y = event.y
+
+        self.draw()
 
         print("Creating zone")
 
     def mouse_drag(self, event):
         """
-        Updates the temporary rectangle while dragging.
+        Handles mouse movement while the left mouse button is held.
+        Depending on the current editor mode this will either:
+            - Move an existing zone
+            - Draw the preview for a new zone
         """
-        # print("MOUSE DRAG RECEIVED")
 
+        # print("MOUSE DRAG RECEIVED")
         # Convert canvas coordinates to Windows coordinates
         windows_x = event.x + self.min_x
         windows_y = event.y + self.min_y
 
-        # Dragging a layout window
-        if self.dragging_zone and self.selected_zone:
+        # -------------------------------------------------------------
+        # Moving/Dragging an existing layout window
+        # -------------------------------------------------------------
+        if self.editor_mode == EditorMode.MOVING:
+
+            if self.selected_zone is None:
+                return
 
             self.selected_zone.x = windows_x - self.drag_offset_x
             self.selected_zone.y = windows_y - self.drag_offset_y
 
             self.draw()
-
             return
 
-        # creating a new zone
-        if self.drag_start_x is None or self.drag_start_y is None:
+        # -------------------------------------------------------------
+        # Creating a new zone
+        # -------------------------------------------------------------
+        if self.editor_mode != EditorMode.CREATING:
             return
 
-        # tell Python/type checker
-        # these are definitely numbers.
-        start_x = self.drag_start_x
-        start_y = self.drag_start_y
+        # The type checker doesn't know these aren't None, so
+        # copying them into local variables after the check.
+        if self.create_start_x is None or self.create_start_y is None:
+            return
+
+        # tell Python/type checker these are definitely numbers.
+        start_x = self.create_start_x
+        start_y = self.create_start_y
 
         # Remove old preview rectangle
         if self.current_rectangle:
@@ -355,11 +367,12 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         # Finished moving an existing zone
         # ------------------------------------------------------------
-        if self.dragging_zone:
-
-            self.dragging_zone = False
+        if self.editor_mode == EditorMode.MOVING:
 
             config.save_config(self.zone_manager.monitors)
+
+            self.editor_mode = EditorMode.IDLE
+            self.active_handle = HandleType.NONE
 
             self.draw()
 
@@ -368,64 +381,75 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         # Finished creating a new zone
         # ------------------------------------------------------------
-        if self.drag_start_x is None or self.drag_start_y is None:
+
+        if self.editor_mode != EditorMode.CREATING:
+            return
+        if self.create_start_x is None or self.create_start_y is None:
             return
 
-        # ------------------------------------------------------------
-        # Normalize drag direction
-        #
-        # Allows dragging:
-        # top-left -> bottom-right
-        # OR
-        # bottom-right -> top-left
-        # ------------------------------------------------------------
+        if self.editor_mode == EditorMode.CREATING:
+            # ------------------------------------------------------------
+            # Normalize drag direction
+            # Allows dragging:top-left -> bottom-right
+            # OR bottom-right -> top-left
+            # ------------------------------------------------------------
 
-        canvas_x1 = min(self.drag_start_x, event.x)
-        canvas_y1 = min(self.drag_start_y, event.y)
+            canvas_x1 = min(self.create_start_x, event.x)
+            canvas_y1 = min(self.create_start_y, event.y)
 
-        canvas_x2 = max(self.drag_start_x, event.x)
-        canvas_y2 = max(self.drag_start_y, event.y)
+            canvas_x2 = max(self.create_start_x, event.x)
+            canvas_y2 = max(self.create_start_y, event.y)
 
-        width = canvas_x2 - canvas_x1
-        height = canvas_y2 - canvas_y1
+            width = canvas_x2 - canvas_x1
+            height = canvas_y2 - canvas_y1
 
-        # Ignore accidental tiny clicks
-        if width < 20 or height < 20:
-            print("Zone too small")
-            return
+            # Ignore accidental tiny clicks
+            if width < 20 or height < 20:
+                print("Zone too small")
+                if self.current_rectangle:
+                    self.canvas.delete(self.current_rectangle)
+                    self.current_rectangle = None
+                return
 
-        # ------------------------------------------------------------
-        # Convert canvas coordinates into Windows coordinates
-        # ------------------------------------------------------------
+            # ------------------------------------------------------------
+            # Convert canvas coordinates into Windows coordinates
+            # ------------------------------------------------------------
 
-        windows_x, windows_y = self.canvas_to_windows_coords(canvas_x1, canvas_y1)
-
-        print("New zone:", windows_x, windows_y, width, height)
-
-        # ------------------------------------------------------------
-        # Find which monitor this belongs to
-        # ------------------------------------------------------------
-
-        monitor = self.find_monitor_for_zone(windows_x, windows_y)
-
-        if monitor is None:
-            print("No monitor found")
-        else:
-            print("Assigned to monitor:", monitor.id)
-
-            self.zone_manager.editor.add_zone(
-                monitor.id, windows_x, windows_y, width, height
+            windows_x, windows_y = self.canvas_to_windows_coords(
+                canvas_x1, canvas_y1
             )
 
-        # Remove preview rectangle
-        if self.current_rectangle:
-            self.canvas.delete(self.current_rectangle)
+            print("New zone:", windows_x, windows_y, width, height)
 
-            self.current_rectangle = None
+            # ------------------------------------------------------------
+            # Find which monitor this belongs to
+            # ------------------------------------------------------------
+
+            monitor = self.find_monitor_for_zone(windows_x, windows_y)
+
+            if monitor is None:
+                print("No monitor found")
+            else:
+                print("Assigned to monitor:", monitor.id)
+
+                self.zone_manager.editor.add_zone(
+                    monitor.id, windows_x, windows_y, width, height
+                )
+                config.save_config(self.zone_manager.monitors)
+
+            # Remove preview rectangle
+            if self.current_rectangle:
+                self.canvas.delete(self.current_rectangle)
+
+                self.current_rectangle = None
+
+        # Reset editor and handle state
+        self.editor_mode = EditorMode.IDLE
+        self.active_handle = HandleType.NONE
 
         # Reset drag state
-        self.drag_start_x = None
-        self.drag_start_y = None
+        self.create_start_x = None
+        self.create_start_y = None
 
         # Redraw zones
         self.draw()
@@ -478,36 +502,27 @@ class ZoneOverlay:
 
         self.draw()
 
-    def hit_test(self, canvas_x, canvas_y):
+    def get_handle_at(self, canvas_x, canvas_y):
         """
-        Checks if the mouse is on a zone border.
-
+        Checks if the mouse is on a zone edit handle.
         Returns:
-            Zone object if border is clicked
+            Zone object if handle is clicked
             None otherwise
         """
-
         windows_x = canvas_x + self.min_x
         windows_y = canvas_y + self.min_y
 
-        border = 8
-
+        handle_radius = 8
         for monitor in self.monitors:
             for zone in monitor.zones:
 
-                left = zone.x
-                right = zone.x + zone.width
-                top = zone.y
-                bottom = zone.y + zone.height
+                handle_x = zone.x + zone.width / 2
+                handle_y = zone.y
 
-                near_border = (
-                    abs(windows_x - left) <= border
-                    or abs(windows_x - right) <= border
-                    or abs(windows_y - top) <= border
-                    or abs(windows_y - bottom) <= border
-                )
-
-                if near_border:
-                    return zone
+                if (
+                    abs(windows_x - handle_x) <= handle_radius
+                    and abs(windows_y - handle_y) <= handle_radius
+                ):
+                    return (HandleType.MOVE, zone)
 
         return None
