@@ -14,6 +14,10 @@ class ZoneOverlay:
         # setting enum variables
         self.editor_mode = EditorMode.IDLE
         self.active_handle = HandleType.NONE
+
+        # The minimum size a window can be resized or created at:
+        self.minimum_zone_size = 20
+
         # ------------------------------------------------------------
         # Find the full Windows virtual desktop bounds
         # Example with 3 monitors:
@@ -43,7 +47,6 @@ class ZoneOverlay:
 
         # ------------------------------------------------------------
         # Overlay background
-        #
         # Use alpha transparency so:
         # - Desktop remains visible
         # - Mouse input still works
@@ -51,20 +54,13 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         self.root.configure(bg="black")
         # Make overlay semi-transparent
-        # Adjust this value:
-        # 0.0 = invisible
-        # 1.0 = fully opaque
+        # Adjust this value: 0.0 = invisible - 1.0 = fully opaque
         self.root.attributes("-alpha", 0.35)
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
-        # IMPORTANT:
-        # Windows coordinates:
-        # DISPLAY3: x = -1920
-        # DISPLAY1: x = 0
-        # DISPLAY2: x = 1920
-        # The overlay starts at min_x.
-        # Zone coordinates are converted later.
+        # Windows coordinates: DISPLAY3: x = -1920 | DISPLAY1: x = 0 | DISPLAY2: x = 1920
+        # The overlay starts at min_x. Zone coordinates are converted later.
         # ------------------------------------------------------------
 
         # Tkinter handles negative X positions incorrectly sometimes.
@@ -84,10 +80,8 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         # DEBUG:
         # This tells us where Windows REALLY placed the overlay.
-        # If this prints:   -1920 0
-        # the overlay is correct.
-        # If it prints: 0 0
-        # Tkinter ignored the negative position.
+        # If this prints:   -1920 0 the overlay is correct.
+        # If it prints: 0 0 Tkinter ignored the negative position.
         # ------------------------------------------------------------
         # print("Actual overlay position:")
         # print(self.root.winfo_x(), self.root.winfo_y())
@@ -99,7 +93,6 @@ class ZoneOverlay:
         self.canvas = tk.Canvas(self.root, bg="black", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
         # ------------------------------------------------------------
-        # Mouse editing state
         # These store the rectangle currently being drawn.
         # Canvas position where the user started drawing a new zone.
         # Used only while creating.
@@ -112,12 +105,8 @@ class ZoneOverlay:
         # Setting no currently selected zone
         # ------------------------------------------------------------
         self.selected_zone = None
-        # ------------------------------------------------------------
-        # Setting none for moving a selected zone and offset to zero for where mouse clicked
-        # ------------------------------------------------------------
-        # Old variable. Now using enums.py
-        # self.dragging_zone = False
 
+        # ------------------------------------------------------------
         # Distance from the mouse cursorto the zone's upper-left corner.
         # Keeps the zone from jumping when dragging starts.
         self.drag_offset_x = 0
@@ -127,7 +116,6 @@ class ZoneOverlay:
         # Bind mouse events
         # Button-1 = left mouse button
         # ------------------------------------------------------------
-
         self.canvas.bind("<ButtonPress-1>", self.mouse_down)
         self.canvas.bind("<B1-Motion>", self.mouse_drag)
         self.canvas.bind("<ButtonRelease-1>", self.mouse_up)
@@ -366,112 +354,36 @@ class ZoneOverlay:
 
             zone = self.selected_zone
             # setting minimum size for zone width and height
-            min_size = 20
 
-            if self.active_handle == HandleType.TOP:
+            zone = self.selected_zone
 
-                # new_height = (zone.y + zone.height) - windows_y
-
-                # zone.y = windows_y
-                # zone.height = new_height
-
-                new_height = (zone.y + zone.height) - windows_y
-
-                if new_height >= min_size:
-
-                    zone.y = windows_y
-                    zone.height = new_height
+            if self.active_handle == HandleType.LEFT:
+                self.resize_left(zone, windows_x)
 
             elif self.active_handle == HandleType.RIGHT:
+                self.resize_right(zone, windows_x)
 
-                # zone.width = windows_x - zone.x
-                zone.width = max(min_size, windows_x - zone.x)
+            elif self.active_handle == HandleType.TOP:
+                self.resize_top(zone, windows_y)
 
             elif self.active_handle == HandleType.BOTTOM:
-
-                # zone.height = windows_y - zone.y
-                zone.height = max(min_size, windows_y - zone.y)
-
-            elif self.active_handle == HandleType.LEFT:
-
-                # new_width = (zone.x + zone.width) - windows_x
-
-                # zone.x = windows_x
-                # zone.width = new_width
-
-                new_width = (zone.x + zone.width) - windows_x
-
-                if new_width >= min_size:
-
-                    zone.x = windows_x
-                    zone.width = new_width
+                self.resize_bottom(zone, windows_y)
 
             elif self.active_handle == HandleType.TOP_LEFT:
-
-                old_right = zone.x + zone.width
-                old_bottom = zone.y + zone.height
-
-                # zone.x = windows_x
-                # zone.y = windows_y
-
-                # zone.width = old_right - zone.x
-                # zone.height = old_bottom - zone.y
-
-                new_width = old_right - windows_x
-                new_height = old_bottom - windows_y
-
-                if new_width >= min_size and new_height >= min_size:
-
-                    zone.x = windows_x
-                    zone.y = windows_y
-
-                    zone.width = new_width
-                    zone.height = new_height
+                self.resize_left(zone, windows_x)
+                self.resize_top(zone, windows_y)
 
             elif self.active_handle == HandleType.TOP_RIGHT:
-
-                old_bottom = zone.y + zone.height
-
-                # zone.y = windows_y
-                # zone.width = windows_x - zone.x
-                # zone.height = old_bottom - zone.y
-
-                new_width = windows_x - zone.x
-                new_height = old_bottom - windows_y
-
-                if new_width >= min_size and new_height >= min_size:
-
-                    zone.y = windows_y
-
-                    zone.width = new_width
-                    zone.height = new_height
-
-            elif self.active_handle == HandleType.BOTTOM_RIGHT:
-
-                # zone.width = windows_x - zone.x
-                # zone.height = windows_y - zone.y
-
-                zone.width = max(min_size, windows_x - zone.x)
-
-                zone.height = max(min_size, windows_y - zone.y)
+                self.resize_right(zone, windows_x)
+                self.resize_top(zone, windows_y)
 
             elif self.active_handle == HandleType.BOTTOM_LEFT:
+                self.resize_left(zone, windows_x)
+                self.resize_bottom(zone, windows_y)
 
-                old_right = zone.x + zone.width
-
-                # zone.x = windows_x
-                # zone.width = old_right - zone.x
-                # zone.height = windows_y - zone.y
-
-                new_width = old_right - windows_x
-                new_height = windows_y - zone.y
-
-                if new_width >= min_size and new_height >= min_size:
-
-                    zone.x = windows_x
-
-                    zone.width = new_width
-                    zone.height = new_height
+            elif self.active_handle == HandleType.BOTTOM_RIGHT:
+                self.resize_right(zone, windows_x)
+                self.resize_bottom(zone, windows_y)
 
             self.draw()
 
@@ -583,7 +495,10 @@ class ZoneOverlay:
             height = canvas_y2 - canvas_y1
 
             # Ignore accidental tiny clicks
-            if width < 20 or height < 20:
+            if (
+                width < self.minimum_zone_size
+                or height < self.minimum_zone_size
+            ):
                 print("Zone too small")
                 if self.current_rectangle:
                     self.canvas.delete(self.current_rectangle)
@@ -747,13 +662,14 @@ class ZoneOverlay:
         """
 
         hit = self.get_handle_at(event.x, event.y)
+        print(f"Mouse move hit:{hit}")
 
         if hit is None:
             self.root.configure(cursor="")
             return
 
         handle, zone = hit
-
+        print(f"{handle} {zone} = hit")
         cursor_map = {
             HandleType.MOVE: "fleur",
             HandleType.TOP_LEFT: "size_nw_se",
@@ -767,3 +683,37 @@ class ZoneOverlay:
         }
 
         self.root.configure(cursor=cursor_map.get(handle, ""))
+
+    def resize_left(self, zone, windows_x):
+        """
+        Moves the left edge while keeping the right edge fixed.
+        """
+        old_right = zone.x + zone.width
+        new_width = old_right - windows_x
+
+        if new_width >= self.minimum_zone_size:
+            zone.x = windows_x
+            zone.width = new_width
+
+    def resize_right(self, zone, windows_x):
+        """
+        Moves the right edge while keeping the left edge fixed.
+        """
+        zone.width = max(self.minimum_zone_size, windows_x - zone.x)
+
+    def resize_top(self, zone, windows_y):
+        """
+        Moves the top edge while keeping the bottom edge fixed.
+        """
+        old_bottom = zone.y + zone.height
+        new_height = old_bottom - windows_y
+
+        if new_height >= self.minimum_zone_size:
+            zone.y = windows_y
+            zone.height = new_height
+
+    def resize_bottom(self, zone, windows_y):
+        """
+        Moves the bottom edge while keeping the top edge fixed.
+        """
+        zone.height = max(self.minimum_zone_size, windows_y - zone.y)
