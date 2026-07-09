@@ -86,3 +86,5 @@ The application reflects many of the same skills I use professionally:
 - software architecture
 
 ---
+## License
+MIT
