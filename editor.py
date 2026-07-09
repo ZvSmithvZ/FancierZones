@@ -76,13 +76,17 @@ class ZoneEditor:
 
             if monitor.id == monitor_id:
 
-                zone = Zone(x=x, y=y, width=width, height=height, assignment=assignment)
+                zone = Zone(
+                    x=x, y=y, width=width, height=height, assignment=assignment
+                )
 
                 monitor.zones.append(zone)
                 # Saving zones to json file
                 config.save_config(self.zone_manager.monitors)
 
-                print(f"Added zone to {monitor.id}: " f"{x},{y} {width}x{height}")
+                print(
+                    f"Added zone to {monitor.id}: " f"{x},{y} {width}x{height}"
+                )
 
                 return zone
 
@@ -99,9 +103,9 @@ class ZoneEditor:
             if zone in monitor.zones:
 
                 monitor.zones.remove(zone)
-
                 # Save updated configuration
-                config.save_config(self.zone_manager.monitors)
+                # removing save for now
+                # config.save_config(self.zone_manager.monitors)
 
                 print(f"Removed zone {zone}")
 

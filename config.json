@@ -24,10 +24,17 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 95,
+                    "x": 201,
+                    "y": 119,
+                    "width": 739,
+                    "height": 351,
+                    "assignment": null
+                },
+                {
+                    "x": 1188,
                     "y": 120,
-                    "width": 563,
-                    "height": 352,
+                    "width": 534,
+                    "height": 429,
                     "assignment": null
                 }
             ]
@@ -38,15 +45,7 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": [
-                {
-                    "x": -1176,
-                    "y": 288,
-                    "width": 713,
-                    "height": 523,
-                    "assignment": null
-                }
-            ]
+            "zones": []
         }
     ]
 }

@@ -130,20 +130,37 @@ class ZoneOverlay:
         self.canvas.bind("<Motion>", self.mouse_move)
 
     def draw(self):
-        # print("DRAW CALLED")
+        """
+        Full redraw.
+
+        Used when:
+        - Opening editor
+        - Loading config
+        - Major state changes
+
+        Does NOT get called while dragging.
+        """
+
         self.canvas.delete("all")
         self.zone_canvas_items.clear()
 
         for monitor in self.monitors:
 
-            # print("MONITOR:", monitor.id, "position:", monitor.x, monitor.y)
+            # Draw monitor outline
             mx1 = monitor.x - self.min_x
             my1 = monitor.y - self.min_y
 
             mx2 = mx1 + monitor.width
             my2 = my1 + monitor.height
+
             self.canvas.create_rectangle(
-                mx1, my1, mx2, my2, outline="cyan", width=2, fill=""
+                mx1,
+                my1,
+                mx2,
+                my2,
+                outline="cyan",
+                width=2,
+                fill="",
             )
 
             self.canvas.create_text(
@@ -153,109 +170,130 @@ class ZoneOverlay:
                 anchor="nw",
                 fill="white",
             )
+
+            # Draw each zone on this monitor
             for zone in monitor.zones:
+                self.draw_zone(zone)
 
-                # ----------------------------------------------------
-                # Convert absolute Windows coordinates
-                # Example: Monitor 2 zone: x = 2120
-                # Overlay starts at min_x = -1920
-                # Canvas coordinate: 2120 - (-1920) = 4040
-                # ----------------------------------------------------
-                # Converting from win to canvas coords
-                # x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
-                x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
-                x2 = x1 + zone.width
-                y2 = y1 + zone.height
+    def draw_zone(self, zone):
+        """
+        Creates all canvas objects for one zone.
 
-                # ------------------------------------------------------
-                # Draw rectangle
-                if zone == self.selected_zone:
-                    outline = "yellow"
-                    width = 5
-                    fill = "gray40"
-                else:
-                    outline = "red"
-                    width = 3
-                    fill = "gray20"
+        Stores the canvas IDs in zone_canvas_items
+        so they can be updated later without redrawing everything.
+        """
 
-                # Create rectangle zone and store ID
-                zone_items = {}
+        x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
 
-                zone_items["rectangle"] = self.canvas.create_rectangle(
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                    outline=outline,
-                    width=width,
-                    fill=fill,
-                    stipple="gray50",
+        x2 = x1 + zone.width
+        y2 = y1 + zone.height
+
+        # -----------------------------------------------
+        # Zone appearance
+        # -----------------------------------------------
+
+        if zone == self.selected_zone:
+            outline = "yellow"
+            width = 5
+            fill = "gray40"
+        else:
+            outline = "red"
+            width = 3
+            fill = "gray20"
+
+        zone_items = {}
+
+        # -----------------------------------------------
+        # Main zone rectangle
+        # -----------------------------------------------
+
+        zone_items["rectangle"] = self.canvas.create_rectangle(
+            x1,
+            y1,
+            x2,
+            y2,
+            outline=outline,
+            width=width,
+            fill=fill,
+            stipple="gray50",
+        )
+
+        # -----------------------------------------------
+        # Label
+        # -----------------------------------------------
+
+        zone_items["label"] = self.canvas.create_text(
+            x1 + 10,
+            y1 + 10,
+            text=(
+                f"Xcoord:{zone.x} "
+                f"Ycoord:{zone.y} "
+                f"Dimensions:{zone.width}x{zone.height} "
+                f"Assigned:{zone.assignment}"
+            ),
+            anchor="nw",
+            fill="white",
+        )
+
+        # -----------------------------------------------
+        # Move handle
+        # -----------------------------------------------
+
+        handle_size = 18
+
+        handle_x, handle_y = self.get_move_handle_position(zone)
+
+        canvas_x, canvas_y = self.windows_to_canvas_coords(
+            handle_x,
+            handle_y,
+        )
+
+        zone_items["move_handle"] = self.canvas.create_oval(
+            canvas_x - handle_size / 2,
+            canvas_y - handle_size / 2,
+            canvas_x + handle_size / 2,
+            canvas_y + handle_size / 2,
+            fill="dodgerblue",
+            outline="white",
+            width=2,
+        )
+
+        # -----------------------------------------------
+        # Resize handles
+        # -----------------------------------------------
+
+        zone_items["resize_handles"] = []
+
+        if zone == self.selected_zone:
+
+            indicator_size = 10
+            indicator_color = "white"
+
+            handles = self.get_resize_handle_positions(
+                x1,
+                y1,
+                x2,
+                y2,
+            )
+
+            for px, py in handles.values():
+
+                handle_id = self.canvas.create_rectangle(
+                    px - indicator_size / 2,
+                    py - indicator_size / 2,
+                    px + indicator_size / 2,
+                    py + indicator_size / 2,
+                    fill=indicator_color,
+                    outline="black",
                 )
 
-                # ------------------------------------------------
-                # Label zone size
-                zone_items["label"] = self.canvas.create_text(
-                    x1 + 10,
-                    y1 + 10,
-                    text=f"Xcoord:{zone.x} Ycoord:{zone.y} Dimensions:{zone.width}x{zone.height} Assigned:{zone.assignment}",
-                    anchor="nw",
-                    fill="white",
-                )
-                # ------------------------------------------------
-                # Move handle size
-                handle_size = 18
+                zone_items["resize_handles"].append(handle_id)
 
-                handle_x, handle_y = self.get_move_handle_position(zone)
-                canvas_x, canvas_y = self.windows_to_canvas_coords(
-                    handle_x,
-                    handle_y,
-                )
+        # -----------------------------------------------
+        # Store canvas references
+        # -----------------------------------------------
 
-                # Rendering the move handle
-                zone_items["move_handle"] = self.canvas.create_oval(
-                    canvas_x - handle_size / 2,
-                    canvas_y - handle_size / 2,
-                    canvas_x + handle_size / 2,
-                    canvas_y + handle_size / 2,
-                    fill="dodgerblue",
-                    outline="white",
-                    width=2,
-                )
-
-                # ------------------------------------------------
-                # Drawing resize indicators for selected zones
-                if zone == self.selected_zone:
-
-                    indicator_size = 10
-                    indicator_color = "white"
-                    handles = self.get_resize_handle_positions(
-                        x1,
-                        y1,
-                        x2,
-                        y2,
-                    )
-
-                    zone_items["resize_handles"] = []
-
-                    for px, py in handles.values():
-
-                        handle_id = self.canvas.create_rectangle(
-                            px - indicator_size / 2,
-                            py - indicator_size / 2,
-                            px + indicator_size / 2,
-                            py + indicator_size / 2,
-                            fill=indicator_color,
-                            outline="black",
-                        )
-                        zone_items.setdefault("resize_handles", []).append(
-                            handle_id
-                        )
-                        # zone_items["resize_handles"].append(handle_id)
-
-                self.zone_canvas_items[id(zone)] = zone_items
-
-        # self.root.update()
-        # self.root.update_idletasks()
+        self.zone_canvas_items[id(zone)] = zone_items
 
     def show(self):
         """
@@ -277,18 +315,6 @@ class ZoneOverlay:
         if self.root:
             self.root.update_idletasks()
             self.root.update()
-
-    # def process_events(self):
-    #     """
-    #     Allows Tkinter to process:
-    #     - mouse clicks
-    #     - mouse movement
-    #     - redraw events
-    #     without starting a second event loop.
-    #     """
-
-    #     if self.root:
-    #         self.root.update()
 
     def mouse_down(self, event):
 
@@ -604,12 +630,28 @@ class ZoneOverlay:
         """
 
         if self.selected_zone is None:
+            print("No zone selected")
             return
 
-        self.zone_manager.editor.remove_zone(self.selected_zone)
+        zone = self.selected_zone
 
+        print("Deleting zone:", zone)
+
+        # Remove from monitor data / JSON structure
+        self.zone_manager.editor.remove_zone(zone)
+
+        # Remove canvas references
+        self.zone_canvas_items.pop(id(zone), None)
+
+        # Clear selection
         self.selected_zone = None
+        self.active_handle = HandleType.NONE
+        self.editor_mode = EditorMode.IDLE
 
+        # Save updated config
+        config.save_config(self.zone_manager.monitors)
+
+        # Redraw
         self.draw()
 
     def get_handle_at(self, canvas_x, canvas_y):
@@ -793,7 +835,6 @@ class ZoneOverlay:
         Updates only the selected zone's canvas objects.
         Does not redraw the entire editor.
         """
-
         zone = self.selected_zone
 
         if zone is None:
@@ -807,7 +848,6 @@ class ZoneOverlay:
         # ------------------------------------------------
         # Calculate new canvas coordinates
         # ------------------------------------------------
-
         x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
 
         x2 = x1 + zone.width
@@ -816,13 +856,11 @@ class ZoneOverlay:
         # ------------------------------------------------
         # Update main rectangle
         # ------------------------------------------------
-
         self.canvas.coords(items["rectangle"], x1, y1, x2, y2)
 
         # ------------------------------------------------
         # Update move handle
         # ------------------------------------------------
-
         handle_x, handle_y = self.get_move_handle_position(zone)
 
         canvas_handle_x, canvas_handle_y = self.windows_to_canvas_coords(
@@ -842,7 +880,6 @@ class ZoneOverlay:
         # ------------------------------------------------
         # Update resize handles
         # ------------------------------------------------
-
         resize_positions = self.get_resize_handle_positions(x1, y1, x2, y2)
 
         indicator_size = 10
@@ -862,7 +899,6 @@ class ZoneOverlay:
         # ------------------------------------------------
         # Update label
         # ------------------------------------------------
-
         self.canvas.coords(items["label"], x1 + 10, y1 + 10)
 
         self.canvas.itemconfig(
@@ -874,3 +910,29 @@ class ZoneOverlay:
                 f"Assigned:{zone.assignment}"
             ),
         )
+
+    def delete_zone_canvas_items(self, zone):
+        """
+        Removes all canvas objects belonging to a zone.
+        """
+
+        items = self.zone_canvas_items.get(id(zone))
+
+        if not items:
+            return
+
+        # Delete main rectangle
+        self.canvas.delete(items["rectangle"])
+
+        # Delete text label
+        self.canvas.delete(items["label"])
+
+        # Delete move handle
+        self.canvas.delete(items["move_handle"])
+
+        # Delete resize handles
+        for handle_id in items["resize_handles"]:
+            self.canvas.delete(handle_id)
+
+        # Remove stored references
+        del self.zone_canvas_items[id(zone)]
