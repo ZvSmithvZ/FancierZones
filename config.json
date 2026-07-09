@@ -8,10 +8,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 359,
-                    "y": 299,
-                    "width": 1079,
-                    "height": 466,
+                    "x": 2331,
+                    "y": 141,
+                    "width": 843,
+                    "height": 714,
                     "assignment": null
                 }
             ]
@@ -24,10 +24,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 142,
-                    "y": 126,
-                    "width": 1442,
-                    "height": 742,
+                    "x": 95,
+                    "y": 120,
+                    "width": 563,
+                    "height": 352,
                     "assignment": null
                 }
             ]
@@ -40,10 +40,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": -1235,
-                    "y": 300,
-                    "width": 743,
-                    "height": 389,
+                    "x": -1176,
+                    "y": 288,
+                    "width": 713,
+                    "height": 523,
                     "assignment": null
                 }
             ]
