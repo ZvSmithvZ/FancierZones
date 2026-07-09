@@ -7,7 +7,6 @@ class HandleType(Enum):
     """
 
     NONE = 0
-
     MOVE = 1
 
     TOP_LEFT = 2
@@ -26,9 +25,13 @@ class EditorMode(Enum):
     """
 
     IDLE = 0
-
     CREATING = 1
-
     MOVING = 2
-
     RESIZING = 3
+
+
+class AssignmentType(Enum):
+    NONE = "None"
+    TITLE = "Title"
+    EXE = "Executable"
+    CLASS = "Window Class"

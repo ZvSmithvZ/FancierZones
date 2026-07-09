@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 
 import windows
-from models import Monitor, Zone
+from enums import AssignmentType
+from models import Assignment, Monitor, Zone
 
 CONFIG_PATH = Path("config.json")
 
@@ -29,13 +30,22 @@ def load_config() -> list[Monitor]:
 
         for zone_data in monitor_data["zones"]:
 
+            assignment = None
+
+            if zone_data.get("assignment"):
+                assignment_data = zone_data["assignment"]
+                assignment = Assignment(
+                    type=AssignmentType(assignment_data["type"]),
+                    name=assignment_data["name"],
+                )
+
             monitor.zones.append(
                 Zone(
                     x=zone_data["x"],
                     y=zone_data["y"],
                     width=zone_data["width"],
                     height=zone_data["height"],
-                    assignment=zone_data["assignment"],
+                    assignment=assignment,
                 )
             )
 
@@ -48,7 +58,6 @@ def merge_monitors():
     """
     Detects the monitors currently connected to Windows and
     merges in any saved zones from config.json.
-
     Returns:
         list[Monitor]
     """
@@ -94,12 +103,23 @@ def save_config(monitors: list[Monitor]) -> None:
 
         for zone in monitor.zones:
 
+            assignment_data = None
+
+            if zone.assignment:
+                assignment_data = {
+                    "type": (
+                        zone.assignment.type.value
+                        if zone.assignment.type
+                        else None
+                    ),
+                    "name": zone.assignment.name,
+                }
             zone_data = {
                 "x": zone.x,
                 "y": zone.y,
                 "width": zone.width,
                 "height": zone.height,
-                "assignment": zone.assignment,
+                "assignment": assignment_data,
             }
 
             monitor_data["zones"].append(zone_data)

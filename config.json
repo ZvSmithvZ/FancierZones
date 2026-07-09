@@ -6,7 +6,18 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": []
+            "zones": [
+                {
+                    "x": 2139,
+                    "y": 100,
+                    "width": 1000,
+                    "height": 667,
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "notepad.exe"
+                    }
+                }
+            ]
         },
         {
             "id": "\\\\.\\DISPLAY1",
@@ -16,17 +27,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 30,
-                    "y": 27,
+                    "x": 1359,
+                    "y": 120,
                     "width": 530,
                     "height": 449,
-                    "assignment": null
-                },
-                {
-                    "x": 1420,
-                    "y": 36,
-                    "width": 475,
-                    "height": 582,
                     "assignment": null
                 },
                 {
@@ -37,11 +41,14 @@
                     "assignment": null
                 },
                 {
-                    "x": 644,
-                    "y": 253,
-                    "width": 628,
-                    "height": 537,
-                    "assignment": null
+                    "x": 303,
+                    "y": 126,
+                    "width": 641,
+                    "height": 609,
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "notepad++.exe"
+                    }
                 }
             ]
         },

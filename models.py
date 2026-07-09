@@ -1,5 +1,17 @@
 from dataclasses import dataclass, field
 
+from enums import AssignmentType
+
+
+@dataclass
+class Assignment:
+    """
+    Describes what window should occupy a zone.
+    """
+
+    type: AssignmentType | None = None
+    name: str = ""
+
 
 @dataclass
 class Zone:
@@ -7,7 +19,7 @@ class Zone:
     y: int
     width: int
     height: int
-    assignment: str | None = None
+    assignment: Assignment | None = None
     occupied_hwnd: int | None = None
 
 

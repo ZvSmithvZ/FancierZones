@@ -1,5 +1,4 @@
 # import win32gui
-
 import config
 import hooks
 from editor import ZoneEditor

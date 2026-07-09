@@ -1,7 +1,9 @@
 import tkinter as tk
+from tkinter import ttk
 
 import config
-from enums import EditorMode, HandleType
+from enums import AssignmentType, EditorMode, HandleType
+from models import Assignment
 
 
 class ZoneOverlay:
@@ -119,7 +121,7 @@ class ZoneOverlay:
         self.zone_canvas_items = {}
 
         # ------------------------------------------------------------
-        # Bind mouse events
+        # Bind key events
         # Button-1 = left mouse button
         # ------------------------------------------------------------
         self.canvas.bind("<ButtonPress-1>", self.mouse_down)
@@ -128,6 +130,8 @@ class ZoneOverlay:
         self.root.bind("<Delete>", self.delete_selected_zone)
         # Hover detection
         self.canvas.bind("<Motion>", self.mouse_move)
+        # Click 'e' for zone assignment
+        self.root.bind("<e>", self.open_assignment_editor)
 
     def draw(self):
         """
@@ -221,6 +225,14 @@ class ZoneOverlay:
         # -----------------------------------------------
         # Label
         # -----------------------------------------------
+        assignment_text = "None"
+        assignment_type_text = "None"
+
+        if zone.assignment:
+            assignment_text = zone.assignment.name
+
+            if zone.assignment.type:
+                assignment_type_text = zone.assignment.type.value
 
         zone_items["label"] = self.canvas.create_text(
             x1 + 10,
@@ -229,7 +241,8 @@ class ZoneOverlay:
                 f"Xcoord:{zone.x} "
                 f"Ycoord:{zone.y} "
                 f"Dimensions:{zone.width}x{zone.height} "
-                f"Assigned:{zone.assignment}"
+                f"Assigned:{assignment_text}"
+                f"Type:{assignment_type_text} "
             ),
             anchor="nw",
             fill="white",
@@ -434,7 +447,7 @@ class ZoneOverlay:
             # Instead of drawing everything we're just going to redraw the affected zone
             # self.draw()
 
-            print("MOVING:", self.selected_zone.x, self.selected_zone.y)
+            # print("MOVING:", self.selected_zone.x, self.selected_zone.y)
             self.refresh_zone()
 
             return
@@ -751,18 +764,6 @@ class ZoneOverlay:
         Changes the mouse cursor depending on
         what editor handle is under the mouse.
         """
-
-        # import time
-
-        # start = time.perf_counter()
-
-        # hit = self.get_handle_at(event.x, event.y)
-
-        # elapsed = time.perf_counter() - start
-
-        # if elapsed > 0.005:
-        #     print("mouse_move slow:", elapsed)
-
         hit = self.get_handle_at(event.x, event.y)
         # print(f"Mouse move hit:{hit}")
 
@@ -896,6 +897,15 @@ class ZoneOverlay:
         # ------------------------------------------------
         # Update label
         # ------------------------------------------------
+        assignment_text = "None"
+        assignment_type_text = "None"
+
+        if zone.assignment:
+            assignment_text = zone.assignment.name
+
+            if zone.assignment.type:
+                assignment_type_text = zone.assignment.type.value
+
         self.canvas.coords(items["label"], x1 + 10, y1 + 10)
 
         self.canvas.itemconfig(
@@ -904,7 +914,8 @@ class ZoneOverlay:
                 f"Xcoord:{zone.x} "
                 f"Ycoord:{zone.y} "
                 f"Dimensions:{zone.width}x{zone.height} "
-                f"Assigned:{zone.assignment}"
+                f"Assigned:{assignment_text}"
+                f"Type:{assignment_type_text} "
             ),
         )
 
@@ -933,3 +944,102 @@ class ZoneOverlay:
 
         # Remove stored references
         del self.zone_canvas_items[id(zone)]
+
+    def open_assignment_editor(self, event=None):
+        """
+        Opens a small popup for editing the selected zone assignment.
+        """
+        if self.selected_zone is None:
+            print("No zone selected")
+            return
+
+        zone = self.selected_zone
+
+        popup = tk.Toplevel(self.root)
+        popup.title("Zone Assignment")
+        popup.geometry("300x200")
+        # Keep popup above the overlay
+        popup.attributes("-topmost", True)
+
+        # Make it the active window
+        popup.focus_force()
+        # ----------------------------
+        # Assignment type dropdown
+        # ----------------------------
+
+        tk.Label(popup, text="Assignment Type").pack()
+
+        type_var = tk.StringVar()
+
+        type_dropdown = ttk.Combobox(
+            popup,
+            textvariable=type_var,
+            values=[
+                AssignmentType.TITLE.value,
+                AssignmentType.EXE.value,
+                AssignmentType.CLASS.value,
+            ],
+            state="readonly",
+        )
+
+        type_dropdown.pack()
+
+        # Existing assignment
+        if zone.assignment:
+            type_var.set(zone.assignment.type.value)
+        else:
+            type_var.set(AssignmentType.EXE.value)
+
+        # ----------------------------
+        # Assignment name
+        # ----------------------------
+        tk.Label(popup, text="Name").pack()
+
+        name_entry = tk.Entry(popup)
+        name_entry.pack()
+
+        if zone.assignment:
+            name_entry.insert(0, zone.assignment.name)
+
+        # ----------------------------
+        # Save button
+        # ----------------------------
+        def save_assignment():
+
+            selected_type = AssignmentType(type_var.get())
+
+            zone.assignment = Assignment(
+                type=selected_type,
+                name=name_entry.get(),
+            )
+
+            config.save_config(self.zone_manager.monitors)
+
+            popup.destroy()
+
+            self.draw()
+
+        tk.Button(
+            popup,
+            text="Save",
+            command=save_assignment,
+        ).pack(pady=10)
+
+    def test_assignment(self, event=None):
+        """
+        Temporary test function.
+        Assigns a fake executable to the selected zone.
+        """
+
+        if self.selected_zone is None:
+            print("No zone selected")
+            return
+
+        self.selected_zone.assignment = Assignment(
+            type=AssignmentType.EXE,
+            name="notepad.exe",
+        )
+
+        print("Assigned:", self.selected_zone.assignment)
+        config.save_config(self.zone_manager.monitors)
+        self.draw()
