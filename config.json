@@ -6,15 +6,7 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": [
-                {
-                    "x": 2331,
-                    "y": 141,
-                    "width": 843,
-                    "height": 714,
-                    "assignment": null
-                }
-            ]
+            "zones": []
         },
         {
             "id": "\\\\.\\DISPLAY1",
@@ -24,17 +16,31 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 201,
-                    "y": 119,
-                    "width": 739,
-                    "height": 351,
+                    "x": 30,
+                    "y": 27,
+                    "width": 530,
+                    "height": 449,
                     "assignment": null
                 },
                 {
-                    "x": 1188,
-                    "y": 120,
-                    "width": 534,
-                    "height": 429,
+                    "x": 1420,
+                    "y": 36,
+                    "width": 475,
+                    "height": 582,
+                    "assignment": null
+                },
+                {
+                    "x": 1463,
+                    "y": 665,
+                    "width": 436,
+                    "height": 357,
+                    "assignment": null
+                },
+                {
+                    "x": 644,
+                    "y": 253,
+                    "width": 628,
+                    "height": 537,
                     "assignment": null
                 }
             ]

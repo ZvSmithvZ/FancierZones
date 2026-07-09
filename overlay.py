@@ -416,7 +416,7 @@ class ZoneOverlay:
 
             # Instead of drawing everything we're just going to redraw the affected zone
             # self.draw()
-            self.refresh_selected_zone()
+            self.refresh_zone()
 
             return
 
@@ -435,7 +435,7 @@ class ZoneOverlay:
             # self.draw()
 
             print("MOVING:", self.selected_zone.x, self.selected_zone.y)
-            self.refresh_selected_zone()
+            self.refresh_zone()
 
             return
 
@@ -637,22 +637,19 @@ class ZoneOverlay:
 
         print("Deleting zone:", zone)
 
-        # Remove from monitor data / JSON structure
-        self.zone_manager.editor.remove_zone(zone)
+        # Remove visible canvas objects first
+        self.delete_zone_canvas_items(zone)
 
-        # Remove canvas references
-        self.zone_canvas_items.pop(id(zone), None)
+        # Remove from data structure
+        self.zone_manager.editor.remove_zone(zone)
 
         # Clear selection
         self.selected_zone = None
         self.active_handle = HandleType.NONE
         self.editor_mode = EditorMode.IDLE
 
-        # Save updated config
+        # Save JSON
         config.save_config(self.zone_manager.monitors)
-
-        # Redraw
-        self.draw()
 
     def get_handle_at(self, canvas_x, canvas_y):
         """
@@ -830,7 +827,7 @@ class ZoneOverlay:
         """
         zone.height = max(self.minimum_zone_size, windows_y - zone.y)
 
-    def refresh_selected_zone(self):
+    def refresh_zone(self):
         """
         Updates only the selected zone's canvas objects.
         Does not redraw the entire editor.
