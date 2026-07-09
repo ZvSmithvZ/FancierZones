@@ -6,7 +6,15 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": []
+            "zones": [
+                {
+                    "x": 359,
+                    "y": 299,
+                    "width": 1079,
+                    "height": 466,
+                    "assignment": null
+                }
+            ]
         },
         {
             "id": "\\\\.\\DISPLAY1",
@@ -16,17 +24,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 533,
-                    "y": 278,
-                    "width": 444,
-                    "height": 234,
-                    "assignment": null
-                },
-                {
-                    "x": 1227,
-                    "y": 172,
-                    "width": 238,
-                    "height": 141,
+                    "x": 142,
+                    "y": 126,
+                    "width": 1442,
+                    "height": 742,
                     "assignment": null
                 }
             ]
@@ -37,7 +38,15 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": []
+            "zones": [
+                {
+                    "x": -1235,
+                    "y": 300,
+                    "width": 743,
+                    "height": 389,
+                    "assignment": null
+                }
+            ]
         }
     ]
 }

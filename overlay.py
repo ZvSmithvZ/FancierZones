@@ -56,6 +56,7 @@ class ZoneOverlay:
         # Make overlay semi-transparent
         # Adjust this value: 0.0 = invisible - 1.0 = fully opaque
         self.root.attributes("-alpha", 0.35)
+        # self.root.attributes("-alpha", 1)
 
         # ------------------------------------------------------------
         # Position overlay over the entire virtual desktop
@@ -105,12 +106,17 @@ class ZoneOverlay:
         # Setting no currently selected zone
         # ------------------------------------------------------------
         self.selected_zone = None
+        self.current_cursor = None
 
         # ------------------------------------------------------------
         # Distance from the mouse cursorto the zone's upper-left corner.
         # Keeps the zone from jumping when dragging starts.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
+
+        # Stores canvas objects for zones
+        # Allows moving/resizing without redrawing everything
+        self.zone_canvas_items = {}
 
         # ------------------------------------------------------------
         # Bind mouse events
@@ -124,7 +130,7 @@ class ZoneOverlay:
         self.canvas.bind("<Motion>", self.mouse_move)
 
     def draw(self):
-
+        # print("DRAW CALLED")
         self.canvas.delete("all")
 
         for monitor in self.monitors:
@@ -154,10 +160,9 @@ class ZoneOverlay:
                 # Overlay starts at min_x = -1920
                 # Canvas coordinate: 2120 - (-1920) = 4040
                 # ----------------------------------------------------
-
-                x1 = zone.x - self.min_x
-                y1 = zone.y - self.min_y
-
+                # Converting from win to canvas coords
+                # x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
+                x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
                 x2 = x1 + zone.width
                 y2 = y1 + zone.height
 
@@ -173,7 +178,8 @@ class ZoneOverlay:
                     width = 3
                     fill = "gray20"
 
-                self.canvas.create_rectangle(
+                # Create rectangle zone and store ID
+                zone_id = self.canvas.create_rectangle(
                     x1,
                     y1,
                     x2,
@@ -184,18 +190,24 @@ class ZoneOverlay:
                     stipple="gray50",
                 )
 
+                self.zone_canvas_items[zone] = zone_id
+
                 # ------------------------------------------------
-                # Draw move handle
+                # Move handle size
                 handle_size = 18
 
-                handle_x = (x1 + x2) / 2
-                handle_y = y1 - 20
+                handle_x, handle_y = self.get_move_handle_position(zone)
+                canvas_x, canvas_y = self.windows_to_canvas_coords(
+                    handle_x,
+                    handle_y,
+                )
 
+                # Rendering the move handle
                 self.canvas.create_oval(
-                    handle_x - handle_size / 2,
-                    handle_y - handle_size / 2,
-                    handle_x + handle_size / 2,
-                    handle_y + handle_size / 2,
+                    canvas_x - handle_size / 2,
+                    canvas_y - handle_size / 2,
+                    canvas_x + handle_size / 2,
+                    canvas_y + handle_size / 2,
                     fill="dodgerblue",
                     outline="white",
                     width=2,
@@ -216,25 +228,14 @@ class ZoneOverlay:
 
                     indicator_size = 10
                     indicator_color = "white"
+                    handles = self.get_resize_handle_positions(
+                        x1,
+                        y1,
+                        x2,
+                        y2,
+                    )
 
-                    # Middle points
-                    mid_x = (x1 + x2) / 2
-                    mid_y = (y1 + y2) / 2
-
-                    resize_points = [
-                        # corners
-                        (x1, y1),
-                        (x2, y1),
-                        (x1, y2),
-                        (x2, y2),
-                        # sides
-                        (mid_x, y1),
-                        (mid_x, y2),
-                        (x1, mid_y),
-                        (x2, mid_y),
-                    ]
-
-                    for px, py in resize_points:
+                    for px, py in handles.values():
 
                         self.canvas.create_rectangle(
                             px - indicator_size / 2,
@@ -245,7 +246,8 @@ class ZoneOverlay:
                             outline="black",
                         )
 
-        self.root.update()
+        # self.root.update()
+        # self.root.update_idletasks()
 
     def show(self):
         """
@@ -254,9 +256,7 @@ class ZoneOverlay:
         Does NOT start tkinter mainloop because
         the application already has its own Windows hook loop.
         """
-
         self.draw()
-
         self.root.deiconify()
 
     def update(self):
@@ -266,22 +266,20 @@ class ZoneOverlay:
         - mouse movement
         - redraws
         """
-
         if self.root:
             self.root.update()
 
-    def process_events(self):
-        """
-        Allows Tkinter to process:
-        - mouse clicks
-        - mouse movement
-        - redraw events
+    # def process_events(self):
+    #     """
+    #     Allows Tkinter to process:
+    #     - mouse clicks
+    #     - mouse movement
+    #     - redraw events
+    #     without starting a second event loop.
+    #     """
 
-        without starting a second event loop.
-        """
-
-        if self.root:
-            self.root.update()
+    #     if self.root:
+    #         self.root.update()
 
     def mouse_down(self, event):
 
@@ -338,12 +336,11 @@ class ZoneOverlay:
             - Move an existing zone
             - Draw the preview for a new zone
         """
-
+        # print("DRAG")
         # print("MOUSE DRAG RECEIVED")
         # Convert canvas coordinates to Windows coordinates
-        windows_x = event.x + self.min_x
-        windows_y = event.y + self.min_y
 
+        windows_x, windows_y = self.canvas_to_windows_coords(event.x, event.y)
         # ------------------------------------------------------------
         # Resizing an existing zone
         # ------------------------------------------------------------
@@ -351,9 +348,6 @@ class ZoneOverlay:
 
             if self.selected_zone is None:
                 return
-
-            zone = self.selected_zone
-            # setting minimum size for zone width and height
 
             zone = self.selected_zone
 
@@ -385,7 +379,9 @@ class ZoneOverlay:
                 self.resize_right(zone, windows_x)
                 self.resize_bottom(zone, windows_y)
 
-            self.draw()
+            # Instead of drawing everything we're just going to redraw the affected zone
+            # self.draw()
+            self.refresh_selected_zone()
 
             return
 
@@ -400,7 +396,10 @@ class ZoneOverlay:
             self.selected_zone.x = windows_x - self.drag_offset_x
             self.selected_zone.y = windows_y - self.drag_offset_y
 
-            self.draw()
+            # Instead of drawing everything we're just going to redraw the affected zone
+            # self.draw()
+            self.refresh_selected_zone()
+
             return
 
         # -------------------------------------------------------------
@@ -470,11 +469,6 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         # Finished creating a new zone
         # ------------------------------------------------------------
-
-        # if self.editor_mode != EditorMode.CREATING:
-        #     return
-        # if self.create_start_x is None or self.create_start_y is None:
-        #     return
 
         if self.editor_mode == EditorMode.CREATING:
             if self.create_start_x is None or self.create_start_y is None:
@@ -566,6 +560,17 @@ class ZoneOverlay:
 
         return (x + self.min_x, y + self.min_y)
 
+    def windows_to_canvas_coords(self, windows_x, windows_y):
+        """
+        Converts Windows desktop coordinates
+        into overlay canvas coordinates.
+        """
+
+        return (
+            windows_x - self.min_x,
+            windows_y - self.min_y,
+        )
+
     def find_monitor_for_zone(self, x, y):
         """
         Finds which monitor contains the top-left
@@ -599,51 +604,44 @@ class ZoneOverlay:
     def get_handle_at(self, canvas_x, canvas_y):
         """
         Checks if the mouse is on a zone edit handle.
-        Returns:  (HandleType, Zone)
-            Zone object if handle is clicked
+
+        Returns:
+            (HandleType, Zone)
             None otherwise
         """
-        windows_x = canvas_x + self.min_x
-        windows_y = canvas_y + self.min_y
+
+        windows_x, windows_y = self.canvas_to_windows_coords(
+            canvas_x,
+            canvas_y,
+        )
 
         handle_size = 12
+
         for monitor in self.monitors:
             for zone in monitor.zones:
-                left = zone.x
-                right = zone.x + zone.width
-                top = zone.y
-                bottom = zone.y + zone.height
 
-                center_x = left + zone.width / 2
-                center_y = top + zone.height / 2
+                # --------------------------------------------
+                # Zone edges in Windows coordinates
+                # --------------------------------------------
 
-                # ------------------------------------------------
-                # Move handle
-                # ------------------------------------------------
+                x1 = zone.x
+                y1 = zone.y
 
-                move_x = center_x
-                move_y = top - 10
+                x2 = zone.x + zone.width
+                y2 = zone.y + zone.height
 
-                if (
-                    abs(windows_x - move_x) <= handle_size
-                    and abs(windows_y - move_y) <= handle_size
-                ):
-                    return (HandleType.MOVE, zone)
+                # --------------------------------------------
+                # Get resize handle positions
+                # These are Windows coordinates because
+                # x1/y1/x2/y2 are Windows coordinates.
+                # --------------------------------------------
 
-                # ------------------------------------------------
-                # Resize handles
-                # ------------------------------------------------
-
-                handles = {
-                    HandleType.TOP_LEFT: (left, top),
-                    HandleType.TOP: (center_x, top),
-                    HandleType.TOP_RIGHT: (right, top),
-                    HandleType.LEFT: (left, center_y),
-                    HandleType.RIGHT: (right, center_y),
-                    HandleType.BOTTOM_LEFT: (left, bottom),
-                    HandleType.BOTTOM: (center_x, bottom),
-                    HandleType.BOTTOM_RIGHT: (right, bottom),
-                }
+                handles = self.get_resize_handle_positions(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                )
 
                 for handle, (hx, hy) in handles.items():
 
@@ -653,7 +651,50 @@ class ZoneOverlay:
                     ):
                         return (handle, zone)
 
+                # --------------------------------------------
+                # Move handle
+                # --------------------------------------------
+
+                move_x, move_y = self.get_move_handle_position(zone)
+
+                if (
+                    abs(windows_x - move_x) <= handle_size
+                    and abs(windows_y - move_y) <= handle_size
+                ):
+                    return (HandleType.MOVE, zone)
+
         return None
+
+    def get_move_handle_position(self, zone):
+        """
+        Returns the center of the move handle
+        in Windows coordinates.
+        """
+        handle_x = zone.x + zone.width / 2
+        handle_y = zone.y - 25
+        return handle_x, handle_y
+
+    def get_resize_handle_positions(self, x1, y1, x2, y2):
+        """
+        Returns the center point of every resize handle.
+
+        Coordinates are passed in whatever coordinate system
+        the caller is currently using.
+        """
+
+        mid_x = (x1 + x2) / 2
+        mid_y = (y1 + y2) / 2
+
+        return {
+            HandleType.TOP_LEFT: (x1, y1),
+            HandleType.TOP: (mid_x, y1),
+            HandleType.TOP_RIGHT: (x2, y1),
+            HandleType.LEFT: (x1, mid_y),
+            HandleType.RIGHT: (x2, mid_y),
+            HandleType.BOTTOM_LEFT: (x1, y2),
+            HandleType.BOTTOM: (mid_x, y2),
+            HandleType.BOTTOM_RIGHT: (x2, y2),
+        }
 
     def mouse_move(self, event):
         """
@@ -661,15 +702,29 @@ class ZoneOverlay:
         what editor handle is under the mouse.
         """
 
+        # import time
+
+        # start = time.perf_counter()
+
+        # hit = self.get_handle_at(event.x, event.y)
+
+        # elapsed = time.perf_counter() - start
+
+        # if elapsed > 0.005:
+        #     print("mouse_move slow:", elapsed)
+
         hit = self.get_handle_at(event.x, event.y)
-        print(f"Mouse move hit:{hit}")
+        # print(f"Mouse move hit:{hit}")
 
         if hit is None:
-            self.root.configure(cursor="")
+            if self.current_cursor != "":
+                self.canvas.configure(cursor="")
+                self.current_cursor = ""
+
             return
 
         handle, zone = hit
-        print(f"{handle} {zone} = hit")
+        # print(f"{handle} {zone} = hit")
         cursor_map = {
             HandleType.MOVE: "fleur",
             HandleType.TOP_LEFT: "size_nw_se",
@@ -682,7 +737,11 @@ class ZoneOverlay:
             HandleType.BOTTOM_RIGHT: "size_nw_se",
         }
 
-        self.root.configure(cursor=cursor_map.get(handle, ""))
+        new_cursor = cursor_map.get(handle, "")
+
+        if new_cursor != self.current_cursor:
+            self.canvas.configure(cursor=new_cursor)
+            self.current_cursor = new_cursor
 
     def resize_left(self, zone, windows_x):
         """
@@ -717,3 +776,24 @@ class ZoneOverlay:
         Moves the bottom edge while keeping the top edge fixed.
         """
         zone.height = max(self.minimum_zone_size, windows_y - zone.y)
+
+    def refresh_selected_zone(self):
+        """
+        Updates only the selected zone rectangle.
+        Does not redraw the entire canvas.
+        """
+
+        if self.selected_zone is None:
+            return
+
+        zone = self.selected_zone
+
+        if zone not in self.zone_canvas_items:
+            return
+
+        x1, y1 = self.windows_to_canvas_coords(zone.x, zone.y)
+
+        x2 = x1 + zone.width
+        y2 = y1 + zone.height
+
+        self.canvas.coords(self.zone_canvas_items[zone], x1, y1, x2, y2)
