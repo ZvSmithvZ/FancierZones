@@ -8,6 +8,10 @@ FancierZones expands on the concepts introduced by Microsoft PowerToys FancyZone
 
 ---
 
+## Demo
+
+![FancierZones Demo](assets/alpha_demo.gif)
+
 ## Features
 
 ### Current
