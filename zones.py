@@ -139,8 +139,10 @@ class ZoneManager:
         Win + Right Click → tile window under cursor
         """
 
-        # 1. Clean stale zones first
+        # 1. Clean stale zones first, then rebuild occupied zones
         self.free_invalid_zones()
+
+        self.sync_occupied_zones()
 
         # 2. Get target window
         hwnd = self.get_window_under_cursor()
@@ -159,8 +161,27 @@ class ZoneManager:
         #    placed — no need to touch it.
         current_zone = self.get_zone_for_hwnd(hwnd)
         if current_zone is not None:
-            print(f"Window is already tiled in {current_zone}")
-            return
+            current_zone = self.get_zone_for_hwnd(hwnd)
+
+            if current_zone is not None:
+
+                if self.is_window_correctly_placed(hwnd, current_zone):
+                    print(f"Window already correctly placed: {current_zone}")
+                    return
+
+                else:
+                    print("Window belongs to zone but ZONE position changed. ")
+                    print(f"Retiling to {current_zone}")
+
+                    windows.move_window(
+                        hwnd,
+                        current_zone.x,
+                        current_zone.y,
+                        current_zone.width,
+                        current_zone.height,
+                    )
+
+                    return
 
         # 4. Find the best zone for this window
         zone = self.find_best_zone(hwnd)
@@ -257,6 +278,35 @@ class ZoneManager:
                 # 2. window moved out of zone
                 if not self.window_is_in_zone(hwnd, zone):
                     zone.occupied_hwnd = None
+
+    def sync_occupied_zones(self):
+        """
+        Rebuilds occupied_hwnd by checking what windows are currently
+        physically inside zones.
+
+        HWNDs are not saved, so this restores runtime state after launch.
+        """
+        all_windows = windows.enumerate_windows()
+
+        for monitor in self.monitors:
+            for zone in monitor.zones:
+
+                # Don't overwrite an already tracked valid window
+                if zone.occupied_hwnd is not None:
+                    continue
+
+                for hwnd in all_windows:
+
+                    if self.window_is_in_zone(hwnd, zone):
+                        zone.occupied_hwnd = hwnd
+
+                        info = windows.get_window_info(hwnd)
+
+                        print(
+                            f"Synced zone occupied: " f"{info.title} -> {zone}"
+                        )
+
+                        break
 
     def window_is_in_zone(self, hwnd, zone):
         left, top, right, bottom = windows.get_window_rect(hwnd)
