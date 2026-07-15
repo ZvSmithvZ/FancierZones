@@ -8,14 +8,11 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 2139,
-                    "y": 100,
-                    "width": 1000,
-                    "height": 667,
-                    "assignment": {
-                        "type": "Executable",
-                        "name": "notepad.exe"
-                    }
+                    "x": 2356,
+                    "y": 175,
+                    "width": 929,
+                    "height": 656,
+                    "assignment": null
                 }
             ]
         },
@@ -27,8 +24,8 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 1077,
-                    "y": 106,
+                    "x": 1228,
+                    "y": 100,
                     "width": 530,
                     "height": 449,
                     "assignment": {
@@ -37,8 +34,8 @@
                     }
                 },
                 {
-                    "x": 1463,
-                    "y": 665,
+                    "x": 1396,
+                    "y": 636,
                     "width": 436,
                     "height": 357,
                     "assignment": null
@@ -61,7 +58,15 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": []
+            "zones": [
+                {
+                    "x": -1057,
+                    "y": 227,
+                    "width": 682,
+                    "height": 494,
+                    "assignment": null
+                }
+            ]
         }
     ]
 }

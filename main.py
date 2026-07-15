@@ -1,6 +1,8 @@
 # import win32gui
 import config
 import hooks
+
+# import windows
 from editor import ZoneEditor
 
 # from overlay import ZoneOverlay
@@ -16,7 +18,10 @@ zone_manager = ZoneManager()
 # ------------------------------------------------------------
 zone_manager.monitors = config.merge_monitors()
 
-
+# Test to check what windows are enumerated with the new autoblock list
+# for hwnd in windows.enumerate_windows():
+#     info = windows.get_window_info(hwnd)
+#     print(info.title, info.exe, info.class_name)
 # ------------------------------------------------------------
 # Create editor
 # ------------------------------------------------------------

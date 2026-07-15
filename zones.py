@@ -17,11 +17,8 @@ class ZoneManager:
         self.editor_mode = False
         # ------------------------------------------------------------
         # Reference to ZoneEditor
-        #
         # This gets assigned later in main.py:
-        #
         # zone_manager.editor = editor
-        #
         # We set it here so VS Code knows this attribute exists.
         # ------------------------------------------------------------
         self.editor = None
@@ -62,19 +59,10 @@ class ZoneManager:
                     if zone.assignment is None:
                         continue
 
-                    assignment = zone.assignment
+                    # assignment = zone.assignment
 
-                    if assignment.type == AssignmentType.TITLE:
-                        if window_info.title == assignment.name:
-                            return zone
-
-                    elif assignment.type == AssignmentType.EXE:
-                        if window_info.exe == assignment.name:
-                            return zone
-
-                    elif assignment.type == AssignmentType.CLASS:
-                        if window_info.class_name == assignment.name:
-                            return zone
+                    if self.zone_matches_window(zone, window_info):
+                        return zone
 
             return None
 
@@ -112,6 +100,27 @@ class ZoneManager:
 
         print(f"No available zones for {window_info.title}")
         return None
+
+    def zone_matches_window(self, zone, window_info):
+        """
+        Returns True if this zone assignment matches this window.
+        """
+
+        if zone.assignment is None:
+            return False
+
+        assignment = zone.assignment
+
+        if assignment.type == AssignmentType.TITLE:
+            return window_info.title == assignment.name
+
+        elif assignment.type == AssignmentType.EXE:
+            return window_info.exe == assignment.name
+
+        elif assignment.type == AssignmentType.CLASS:
+            return window_info.class_name == assignment.name
+
+        return False
 
     def get_window_under_cursor(self):
         """
@@ -163,6 +172,47 @@ class ZoneManager:
 
         # 7. Mark zone as occupied
         zone.occupied_hwnd = hwnd
+
+    def tile_all_windows(self):
+        """
+        Attempts to place every open application window
+        into available zones.
+        """
+
+        # Clean stale occupancy first
+        self.free_invalid_zones()
+        windows_list = windows.enumerate_windows()
+
+        for hwnd in windows_list:
+
+            # Skip our own editor
+            if self.editor and self.editor.overlay:
+                if hwnd == self.editor.overlay.root.winfo_id():
+                    continue
+
+            # Already tiled?
+            if self.get_zone_for_hwnd(hwnd):
+                continue
+
+            zone = self.find_best_zone(hwnd)
+
+            if zone is None:
+                print("No more zones available")
+                break
+
+            info = windows.get_window_info(hwnd)
+
+            print(f"Tiling {info.title} -> {zone}")
+
+            windows.move_window(
+                hwnd,
+                zone.x,
+                zone.y,
+                zone.width,
+                zone.height,
+            )
+
+            zone.occupied_hwnd = hwnd
 
     def is_window_alive(self, hwnd: int) -> bool:
         """

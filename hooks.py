@@ -93,9 +93,13 @@ KEYEVENTF_KEYUP = 0x0002
 CTRL_RELEASE_DELAY_SECONDS = 0.03
 
 # ---- ctypes plumbing ----
-LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
+LRESULT = (
+    ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
+)
 ULONG_PTR = (
-    ctypes.c_ulonglong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_ulong
+    ctypes.c_ulonglong
+    if ctypes.sizeof(ctypes.c_void_p) == 8
+    else ctypes.c_ulong
 )
 
 
@@ -173,7 +177,11 @@ class INPUT(ctypes.Structure):
     """
 
     class _INPUT(ctypes.Union):
-        _fields_ = [("mi", MOUSEINPUT), ("ki", KEYBDINPUT), ("hi", HARDWAREINPUT)]
+        _fields_ = [
+            ("mi", MOUSEINPUT),
+            ("ki", KEYBDINPUT),
+            ("hi", HARDWAREINPUT),
+        ]
 
     _anonymous_ = ("_input",)
     _fields_ = [("type", wintypes.DWORD), ("_input", _INPUT)]
@@ -181,7 +189,9 @@ class INPUT(ctypes.Structure):
 
 # Hook callback function signature (both mouse and keyboard low-level hooks
 # use this same shape: nCode, wParam, lParam -> LRESULT)
-HookProc = ctypes.WINFUNCTYPE(LRESULT, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
+HookProc = ctypes.WINFUNCTYPE(
+    LRESULT, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM
+)
 
 user32 = ctypes.windll.user32
 user32.CallNextHookEx.argtypes = [
@@ -232,7 +242,9 @@ def _send_ctrl_down():
     """Sends a real Ctrl KEY-DOWN and leaves it held (no matching up yet)."""
     down = INPUT(
         type=INPUT_KEYBOARD,
-        ki=KEYBDINPUT(wVk=VK_CONTROL, wScan=0, dwFlags=0, time=0, dwExtraInfo=0),
+        ki=KEYBDINPUT(
+            wVk=VK_CONTROL, wScan=0, dwFlags=0, time=0, dwExtraInfo=0
+        ),
     )
     user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(INPUT))
     # sent = user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(INPUT))
@@ -246,7 +258,11 @@ def _send_ctrl_up():
     up = INPUT(
         type=INPUT_KEYBOARD,
         ki=KEYBDINPUT(
-            wVk=VK_CONTROL, wScan=0, dwFlags=KEYEVENTF_KEYUP, time=0, dwExtraInfo=0
+            wVk=VK_CONTROL,
+            wScan=0,
+            dwFlags=KEYEVENTF_KEYUP,
+            time=0,
+            dwExtraInfo=0,
         ),
     )
     user32.SendInput(1, ctypes.byref(up), ctypes.sizeof(INPUT))
@@ -355,6 +371,8 @@ def low_level_mouse_proc(nCode, wParam, lParam):
                 if zone_manager:
                     # print("[debug] calling zone_manager.tile_under_cursor()")
                     zone_manager.tile_under_cursor()
+                    # Test for tile all windows
+                    # zone_manager.tile_all_windows()
                 # else:
                 # print("[debug] zone_manager is None!")
 
@@ -393,12 +411,16 @@ def install_hooks(manager: ZoneManager):
         )
     print(f"[debug] Keyboard hook installed (handle={keyboard_hook})")
 
-    mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, _mouse_hook_proc, None, 0)
+    mouse_hook = user32.SetWindowsHookExW(
+        WH_MOUSE_LL, _mouse_hook_proc, None, 0
+    )
     if not mouse_hook:
         # Clean up the keyboard hook if the mouse hook fails, so we don't
         # leak a hook if this function raises.
         user32.UnhookWindowsHookEx(keyboard_hook)
-        raise OSError(f"Failed to install mouse hook. Error: {ctypes.GetLastError()}")
+        raise OSError(
+            f"Failed to install mouse hook. Error: {ctypes.GetLastError()}"
+        )
     print(f"[debug] Mouse hook installed (handle={mouse_hook})")
 
     install_hooks.keyboard_hook = keyboard_hook

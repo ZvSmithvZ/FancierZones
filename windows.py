@@ -37,19 +37,54 @@ def enumerate_windows():
 
     def callback(hwnd, _):
 
-        if not win32gui.IsWindowVisible(hwnd):
+        if not is_tileable_window(hwnd):
             return
 
-        title = win32gui.GetWindowText(hwnd)
-
-        if not title:
-            return
-
-        windows.append(get_window_info(hwnd))
+        # windows.append(get_window_info(hwnd))
+        windows.append(hwnd)
 
     win32gui.EnumWindows(callback, None)
 
     return windows
+
+
+def is_tileable_window(hwnd):
+    """
+    Determines whether a window should appear in Tile All.
+
+    Filters out:
+    - Desktop
+    - Windows system UI
+    - Hidden windows
+    - Empty titles
+    - Minimized windows
+    """
+
+    if not win32gui.IsWindowVisible(hwnd):
+        return False
+
+    # ignoring minimized windows for now
+    if win32gui.IsIconic(hwnd):
+        return False
+
+    title = win32gui.GetWindowText(hwnd)
+
+    if not title.strip():
+        return False
+
+    class_name = win32gui.GetClassName(hwnd)
+
+    ignored_classes = {
+        "Progman",
+        "WorkerW",
+        "Windows.UI.Core.CoreWindow",
+        "ApplicationFrameWindow",
+    }
+
+    if class_name in ignored_classes:
+        return False
+
+    return True
 
 
 # ------------------------getting the state of the window------------------------
