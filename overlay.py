@@ -958,9 +958,11 @@ class ZoneOverlay:
         popup = tk.Toplevel(self.root)
         popup.title("Zone Assignment")
         popup.geometry("300x200")
+
         # Keep popup above the overlay
         popup.attributes("-topmost", True)
 
+        self.root.attributes("-disabled", True)
         # Make it the active window
         popup.focus_force()
         # ----------------------------
@@ -1015,6 +1017,8 @@ class ZoneOverlay:
 
             config.save_config(self.zone_manager.monitors)
 
+            self.root.attributes("-disabled", False)
+            # self.root.focus_force()
             popup.destroy()
 
             self.draw()
@@ -1024,6 +1028,16 @@ class ZoneOverlay:
             text="Save",
             command=save_assignment,
         ).pack(pady=10)
+
+        # ----------------------------
+        # Close popup
+        # ----------------------------
+
+        def close_popup():
+            self.root.attributes("-disabled", False)
+            popup.destroy()
+
+        popup.protocol("WM_DELETE_WINDOW", close_popup)
 
     def test_assignment(self, event=None):
         """
