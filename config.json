@@ -27,13 +27,13 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 1100,
-                    "y": 98,
+                    "x": 1077,
+                    "y": 106,
                     "width": 530,
                     "height": 449,
                     "assignment": {
                         "type": "Executable",
-                        "name": "notepad.exe"
+                        "name": "notepad++.exe"
                     }
                 },
                 {
@@ -44,11 +44,14 @@
                     "assignment": null
                 },
                 {
-                    "x": 194,
-                    "y": 142,
+                    "x": 64,
+                    "y": 169,
                     "width": 641,
                     "height": 609,
-                    "assignment": null
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "notepad.exe"
+                    }
                 }
             ]
         },

@@ -14,6 +14,14 @@ class Assignment:
 
 
 @dataclass
+class WindowInfo:
+    hwnd: int
+    title: str
+    exe: str | None = None
+    class_name: str = ""
+
+
+@dataclass
 class Zone:
     x: int
     y: int

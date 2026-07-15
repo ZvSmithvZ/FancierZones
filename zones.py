@@ -3,6 +3,7 @@ import win32con
 import win32gui
 
 import windows
+from enums import AssignmentType
 from models import Monitor, Zone
 
 
@@ -32,47 +33,84 @@ class ZoneManager:
         Finds the best available zone.
 
         Priority:
-        1. Current monitor
-        2. Other monitors
-        3. Matching assignment
-        4. Any zone
+        1. Current monitor assigned zone (TITLE/EXE/CLASS)
+        2. Any monitor assigned zone (TITLE/EXE/CLASS)
+        3. Current monitor unassigned zone
+        4. Any monitor unassigned zone
         """
 
         window_info = windows.get_window_info(hwnd)
 
         preferred_monitor = windows.get_monitor_for_window(hwnd)
 
-        # Put preferred monitor first
-        monitors = sorted(self.monitors, key=lambda m: m.id != preferred_monitor)
+        preferred = []
+        others = []
 
-        for monitor in monitors:
+        for monitor in self.monitors:
+            if monitor.id == preferred_monitor:
+                preferred.append(monitor)
+            else:
+                others.append(monitor)
 
-            unoccupied = [zone for zone in monitor.zones if zone.occupied_hwnd is None]
+        def find_assigned(monitors):
+            for monitor in monitors:
+                for zone in monitor.zones:
 
-            if not unoccupied:
-                continue
+                    if zone.occupied_hwnd is not None:
+                        continue
 
-            # Priority 1: exact title
-            for zone in unoccupied:
-                if zone.assignment == window_info["title"]:
-                    return zone
+                    if zone.assignment is None:
+                        continue
 
-            # Priority 2: exe
-            for zone in unoccupied:
-                if zone.assignment == window_info["exe"]:
-                    return zone
+                    assignment = zone.assignment
 
-            # Priority 3: class
-            for zone in unoccupied:
-                if zone.assignment == window_info["class"]:
-                    return zone
+                    if assignment.type == AssignmentType.TITLE:
+                        if window_info.title == assignment.name:
+                            return zone
 
-            # Priority 4: any
-            for zone in unoccupied:
-                if zone.assignment is None:
-                    return zone
+                    elif assignment.type == AssignmentType.EXE:
+                        if window_info.exe == assignment.name:
+                            return zone
 
-        print(f"No available zones for {window_info['title']}")
+                    elif assignment.type == AssignmentType.CLASS:
+                        if window_info.class_name == assignment.name:
+                            return zone
+
+            return None
+
+        def find_unassigned(monitors):
+            for monitor in monitors:
+                for zone in monitor.zones:
+
+                    if zone.occupied_hwnd is not None:
+                        continue
+
+                    if zone.assignment is None:
+                        return zone
+
+            return None
+
+        # 1. Current monitor assigned
+        zone = find_assigned(preferred)
+        if zone:
+            return zone
+
+        # 2. Any monitor assigned
+        zone = find_assigned(others)
+        if zone:
+            return zone
+
+        # 3. Current monitor unassigned
+        zone = find_unassigned(preferred)
+        if zone:
+            return zone
+
+        # 4. Any monitor unassigned
+        zone = find_unassigned(others)
+        if zone:
+            return zone
+
+        print(f"No available zones for {window_info.title}")
         return None
 
     def get_window_under_cursor(self):

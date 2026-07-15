@@ -4,7 +4,7 @@ import win32con
 import win32gui
 import win32process
 
-from models import Monitor
+from models import Monitor, WindowInfo
 
 
 # ------------------------getting info of the window------------------------
@@ -21,7 +21,35 @@ def get_window_info(hwnd):
     except psutil.NoSuchProcess:
         exe_name = None
 
-    return {"title": title, "exe": exe_name, "class": class_name}
+    return WindowInfo(
+        hwnd=hwnd,
+        title=title,
+        exe=exe_name,  # type: ignore
+        class_name=class_name,  # type: ignore
+    )
+
+
+def enumerate_windows():
+    """
+    Returns every visible top-level window.
+    """
+    windows = []
+
+    def callback(hwnd, _):
+
+        if not win32gui.IsWindowVisible(hwnd):
+            return
+
+        title = win32gui.GetWindowText(hwnd)
+
+        if not title:
+            return
+
+        windows.append(get_window_info(hwnd))
+
+    win32gui.EnumWindows(callback, None)
+
+    return windows
 
 
 # ------------------------getting the state of the window------------------------
@@ -67,11 +95,9 @@ def get_window_rect(hwnd):
 def detect_monitors():
     """
     Detect every monitor currently connected to Windows.
-
     Returns:
         list[Monitor]
     """
-
     monitors = []
 
     # EnumDisplayMonitors returns:
@@ -100,7 +126,9 @@ def get_monitor_for_window(hwnd):
     the center of this window.
     """
 
-    hmonitor = win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST)
+    hmonitor = win32api.MonitorFromWindow(
+        hwnd, win32con.MONITOR_DEFAULTTONEAREST
+    )
 
     info = win32api.GetMonitorInfo(hmonitor)
 
