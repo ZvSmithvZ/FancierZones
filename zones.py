@@ -167,7 +167,9 @@ class ZoneManager:
         info = windows.get_window_info(hwnd)
 
         # 6. Move window
-        print(f"Moving {info} to {zone}")
+        print(
+            f"Tiling <> Title={info.title} Exe={info.exe} Class={info.class_name} -> {zone}"
+        )
         windows.move_window(hwnd, zone.x, zone.y, zone.width, zone.height)
 
         # 7. Mark zone as occupied
@@ -202,7 +204,9 @@ class ZoneManager:
 
             info = windows.get_window_info(hwnd)
 
-            print(f"Tiling {info.title} -> {zone}")
+            print(
+                f"Tiling <> Title={info.title} Exe={info.exe} Class={info.class_name} -> {zone}"
+            )
 
             windows.move_window(
                 hwnd,

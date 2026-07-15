@@ -40,11 +40,11 @@ class ZoneEditor:
         self.enabled = enabled
 
         if self.enabled:
-            print("Zone Editor ENABLED")
+            # print("Zone Editor ENABLED")
             self.open_overlay()
 
         else:
-            print("Zone Editor DISABLED")
+            # print("Zone Editor DISABLED")
             self.close_overlay()
 
     def open_overlay(self):
@@ -90,7 +90,7 @@ class ZoneEditor:
 
                 return zone
 
-        print(f"Monitor {monitor_id} not found")
+        print(f"Attempting to Add Zone but Monitor: {monitor_id} not found")
         return None
 
     def remove_zone(self, zone):

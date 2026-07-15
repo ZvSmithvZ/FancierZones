@@ -81,7 +81,17 @@ def is_tileable_window(hwnd):
         "ApplicationFrameWindow",
     }
 
-    if class_name in ignored_classes:
+    _, pid = win32process.GetWindowThreadProcessId(hwnd)
+    try:
+        # grabs the process name from pid
+        process = psutil.Process(pid)
+        exe_name = process.name()  # e.g. "notepad.exe"
+    except psutil.NoSuchProcess:
+        exe_name = None
+
+    ignored_exes = {"code.exe"}
+
+    if class_name in ignored_classes or exe_name in ignored_exes:
         return False
 
     return True
