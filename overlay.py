@@ -965,10 +965,10 @@ class ZoneOverlay:
         self.root.attributes("-disabled", True)
         # Make it the active window
         popup.focus_force()
+
         # ----------------------------
         # Assignment type dropdown
         # ----------------------------
-
         tk.Label(popup, text="Assignment Type").pack()
 
         type_var = tk.StringVar()
@@ -1006,22 +1006,27 @@ class ZoneOverlay:
         # ----------------------------
         # Save button
         # ----------------------------
+
         def save_assignment():
+
+            name = name_entry.get().strip()
+
+            if not name:
+                error_label.config(text="Please enter an assignment name.")
+                return
+
+            error_label.config(text="")
 
             selected_type = AssignmentType(type_var.get())
 
             zone.assignment = Assignment(
                 type=selected_type,
-                name=name_entry.get(),
+                name=name,
             )
+            finish()
 
-            config.save_config(self.zone_manager.monitors)
-
-            self.root.attributes("-disabled", False)
-            # self.root.focus_force()
-            popup.destroy()
-
-            self.draw()
+        error_label = tk.Label(popup, text="", fg="red")
+        error_label.pack()
 
         tk.Button(
             popup,
@@ -1029,8 +1034,27 @@ class ZoneOverlay:
             command=save_assignment,
         ).pack(pady=10)
 
+        # ---------------------------
+        # Clear entry button
+        # ---------------------------
+        def remove_assignment():
+            zone.assignment = None
+            finish()
+
+        tk.Button(
+            popup,
+            text="Clear Entry",
+            command=remove_assignment,
+        ).pack(pady=(5))
+
+        def finish():
+            config.save_config(self.zone_manager.monitors)
+            self.root.attributes("-disabled", False)
+            popup.destroy()
+            self.draw()
+
         # ----------------------------
-        # Close popup
+        # Close popup (after finish this will close the popup)
         # ----------------------------
 
         def close_popup():
@@ -1038,22 +1062,3 @@ class ZoneOverlay:
             popup.destroy()
 
         popup.protocol("WM_DELETE_WINDOW", close_popup)
-
-    def test_assignment(self, event=None):
-        """
-        Temporary test function.
-        Assigns a fake executable to the selected zone.
-        """
-
-        if self.selected_zone is None:
-            print("No zone selected")
-            return
-
-        self.selected_zone.assignment = Assignment(
-            type=AssignmentType.EXE,
-            name="notepad.exe",
-        )
-
-        print("Assigned:", self.selected_zone.assignment)
-        config.save_config(self.zone_manager.monitors)
-        self.draw()
