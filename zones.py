@@ -189,17 +189,13 @@ class ZoneManager:
         if zone is None:
             return
 
-        # 5. Grab info only for logging
-        # Moved this higher up for exclusion list debugging
-        # info = windows.get_window_info(hwnd)
-
-        # 6. Move window
+        # 5. Move window
         print(
             f"Tiling <> Title={info.title} Exe={info.exe} Class={info.class_name} -> {zone}"
         )
         windows.move_window(hwnd, zone.x, zone.y, zone.width, zone.height)
 
-        # 7. Mark zone as occupied
+        # 6. Mark zone as occupied
         zone.occupied_hwnd = hwnd
         self.debug_occupied_zones()
 
@@ -411,45 +407,57 @@ class ZoneManager:
 
         self.editor = editor
 
+    def apply_assignments(self):
+        """
+        Finds windows matching zone assignments
+        and moves them into their assigned zones.
+        """
 
-# ---------------- old function in zonemanager
+        print("Applying zone assignments...")
 
-# def tile_window_to_best_zone(self, hwnd):
-#     """
-#     Don't think I'm using this logic anymore
-#     """
-#     info = windows.get_window_info(hwnd)
-#     zone = self.find_best_zone(info)
+        self.free_invalid_zones()
+        self.sync_occupied_zones()
 
-#     if zone is None:
-#         print(f"No available zone for {info['title']}")
-#         return
+        open_windows = windows.enumerate_windows()
 
-#     windows.move_window(hwnd, zone.x, zone.y, zone.width, zone.height)
-#     zone.occupied_hwnd = hwnd
-#     print(f"Tiled '{info['title']}' into zone at ({zone.x}, {zone.y})")
+        for monitor in self.monitors:
+            for zone in monitor.zones:
 
+                # Skip zones without assignments
+                if zone.assignment is None:
+                    continue
 
-# def window_still_matches_zone(self, zone, hwnd):
-#     """
-#     Checks whether a window still belongs in its assigned zone.
-#     """
+                # Skip occupied zones
+                if zone.occupied_hwnd is not None:
+                    continue
 
-#     if hwnd is None:
-#         return False
+                for hwnd in open_windows:
 
-#     if not self.is_window_alive(hwnd):
-#         return False
+                    info = windows.get_window_info(hwnd)
 
-#     # Get current window info
-#     info = windows.get_window_info(hwnd)
+                    matches = False
 
-#     # Compare against zone assignment rules
-#     if zone.assignment is None:
-#         return True  # "any zone" always valid
+                    if zone.assignment.type == AssignmentType.TITLE:
+                        matches = info.title == zone.assignment.name
 
-#     return (
-#         zone.assignment == info["title"]
-#         or zone.assignment == info["exe"]
-#         or zone.assignment == info["class"]
-#     )
+                    elif zone.assignment.type == AssignmentType.EXE:
+                        matches = info.exe == zone.assignment.name
+
+                    elif zone.assignment.type == AssignmentType.CLASS:
+                        matches = info.class_name == zone.assignment.name
+
+                    if matches:
+
+                        print(f"Assignment match: " f"{info.title} -> {zone}")
+
+                        windows.move_window(
+                            hwnd,
+                            zone.x,
+                            zone.y,
+                            zone.width,
+                            zone.height,
+                        )
+
+                        zone.occupied_hwnd = hwnd
+
+                        break

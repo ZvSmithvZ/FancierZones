@@ -18,10 +18,7 @@ zone_manager = ZoneManager()
 # ------------------------------------------------------------
 zone_manager.monitors = config.merge_monitors()
 
-# Test to check what windows are enumerated with the new autoblock list
-# for hwnd in windows.enumerate_windows():
-#     info = windows.get_window_info(hwnd)
-#     print(info.title, info.exe, info.class_name)
+
 # ------------------------------------------------------------
 # Create editor
 # ------------------------------------------------------------
@@ -29,8 +26,6 @@ editor = ZoneEditor(zone_manager)
 # Connect editor to ZoneManager
 zone_manager.set_editor(editor)
 
-# overlay = ZoneOverlay(zone_manager.monitors)
-# overlay.show()
 
 # ------------------------------------------------------------
 # Install global Windows hooks (mouse/keyboard interception from)

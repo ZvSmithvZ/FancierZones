@@ -66,7 +66,7 @@ VK_RWIN = 0x5C
 VK_CONTROL = 0x11
 VK_F12 = 0x7B
 VK_SHIFT = 0x10
-
+VK_F11 = 0x7A
 
 # ---- Keyboard hook message constants ----
 # SYSKEYDOWN/UP fire instead of the plain versions when Alt (or in some
@@ -348,6 +348,11 @@ def low_level_keyboard_proc(nCode, wParam, lParam):
                 zone_manager.toggle_editor()
 
             return 1
+        if kb.vkCode == VK_F11:
+            if zone_manager:
+                zone_manager.apply_assignments()
+
+                return 1
 
     # Always pass every real keyboard event through untouched. We never
     # suppress here -- suppression is achieved via the held Ctrl key, not

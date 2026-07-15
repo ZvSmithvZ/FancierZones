@@ -40,7 +40,6 @@ def enumerate_windows():
         if not is_tileable_window(hwnd):
             return
 
-        # windows.append(get_window_info(hwnd))
         windows.append(hwnd)
 
     win32gui.EnumWindows(callback, None)

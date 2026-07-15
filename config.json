@@ -16,11 +16,14 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": -1012,
-                    "y": 79,
-                    "width": 926,
-                    "height": 837,
-                    "assignment": null
+                    "x": -894,
+                    "y": 166,
+                    "width": 708,
+                    "height": 582,
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "chrome.exe"
+                    }
                 }
             ]
         },
@@ -30,15 +33,7 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": [
-                {
-                    "x": -1770,
-                    "y": 137,
-                    "width": 706,
-                    "height": 618,
-                    "assignment": null
-                }
-            ]
+            "zones": []
         }
     ]
 }

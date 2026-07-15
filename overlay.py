@@ -1023,6 +1023,7 @@ class ZoneOverlay:
                 type=selected_type,
                 name=name,
             )
+            print()
             finish()
 
         error_label = tk.Label(popup, text="", fg="red")
@@ -1048,6 +1049,9 @@ class ZoneOverlay:
         ).pack(pady=(5))
 
         def finish():
+            print(
+                f"Zone Assigned to Type:{Assignment.type} Name:{Assignment.name}"
+            )
             config.save_config(self.zone_manager.monitors)
             self.root.attributes("-disabled", False)
             popup.destroy()
