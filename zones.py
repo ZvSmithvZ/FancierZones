@@ -146,7 +146,12 @@ class ZoneManager:
         hwnd = self.get_window_under_cursor()
         if not hwnd:
             return
-
+        info = windows.get_window_info(hwnd)
+        if not windows.is_tileable_window(hwnd):
+            print(
+                f"Title={info.title} Exe={info.exe} Class={info.class_name} is not tileable"
+            )
+            return
         # 3. If this window already occupies a zone, leave it alone.
         #    free_invalid_zones() above already cleared occupied_hwnd
         #    for any window that moved out of its zone or closed, so
@@ -164,7 +169,8 @@ class ZoneManager:
             return
 
         # 5. Grab info only for logging
-        info = windows.get_window_info(hwnd)
+        # Moved this higher up for exclusion list debugging
+        # info = windows.get_window_info(hwnd)
 
         # 6. Move window
         print(
@@ -174,6 +180,7 @@ class ZoneManager:
 
         # 7. Mark zone as occupied
         zone.occupied_hwnd = hwnd
+        self.debug_occupied_zones()
 
     def tile_all_windows(self):
         """
@@ -298,6 +305,27 @@ class ZoneManager:
                 if zone.occupied_hwnd == hwnd:
                     return zone
         return None
+
+    def debug_occupied_zones(self):
+        """
+        Prints current zone ownership.
+        """
+        for monitor in self.monitors:
+            for zone in monitor.zones:
+                if zone.occupied_hwnd:
+                    print(
+                        "ZONE OCCUPIED:",
+                        zone.x,
+                        zone.y,
+                        "HWND:",
+                        zone.occupied_hwnd,
+                    )
+                else:
+                    print(
+                        "ZONE EMPTY:",
+                        zone.x,
+                        zone.y,
+                    )
 
     def add_zone(self, monitor, x, y, width, height, assignment=None):
         """

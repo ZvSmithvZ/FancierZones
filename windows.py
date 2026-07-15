@@ -89,7 +89,7 @@ def is_tileable_window(hwnd):
     except psutil.NoSuchProcess:
         exe_name = None
 
-    ignored_exes = {"code.exe"}
+    ignored_exes = {"Code.exe"}
 
     if class_name in ignored_classes or exe_name in ignored_exes:
         return False

@@ -65,6 +65,8 @@ VK_LWIN = 0x5B
 VK_RWIN = 0x5C
 VK_CONTROL = 0x11
 VK_F12 = 0x7B
+VK_SHIFT = 0x10
+
 
 # ---- Keyboard hook message constants ----
 # SYSKEYDOWN/UP fire instead of the plain versions when Alt (or in some
@@ -238,6 +240,10 @@ combo_in_progress = False
 #     return root
 
 
+def is_shift_pressed():
+    return ctypes.windll.user32.GetAsyncKeyState(VK_SHIFT) & 0x8000
+
+
 def _send_ctrl_down():
     """Sends a real Ctrl KEY-DOWN and leaves it held (no matching up yet)."""
     down = INPUT(
@@ -365,14 +371,19 @@ def low_level_mouse_proc(nCode, wParam, lParam):
                 # Hold Ctrl down NOW, immediately -- before the user even
                 # releases Win. It stays held until the keyboard hook sees
                 # the real Win key-up and schedules its release.
+                shift_pressed = is_shift_pressed()
                 combo_in_progress = True
                 _send_ctrl_down()
 
                 if zone_manager:
                     # print("[debug] calling zone_manager.tile_under_cursor()")
-                    zone_manager.tile_under_cursor()
-                    # Test for tile all windows
-                    # zone_manager.tile_all_windows()
+
+                    if shift_pressed:
+                        zone_manager.tile_all_windows()
+
+                    else:
+                        zone_manager.tile_under_cursor()
+
                 # else:
                 # print("[debug] zone_manager is None!")
 
