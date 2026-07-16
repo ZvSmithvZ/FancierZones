@@ -420,6 +420,8 @@ class ZoneManager:
 
         open_windows = windows.enumerate_windows()
 
+        used_windows = set()
+
         for monitor in self.monitors:
             for zone in monitor.zones:
 
@@ -432,6 +434,9 @@ class ZoneManager:
                     continue
 
                 for hwnd in open_windows:
+
+                    if hwnd in used_windows:
+                        continue
 
                     info = windows.get_window_info(hwnd)
 
@@ -457,6 +462,7 @@ class ZoneManager:
                             zone.width,
                             zone.height,
                         )
+                        used_windows.add(hwnd)
 
                         zone.occupied_hwnd = hwnd
 

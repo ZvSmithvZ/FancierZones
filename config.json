@@ -16,13 +16,13 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": -894,
-                    "y": 166,
+                    "x": -945,
+                    "y": 176,
                     "width": 708,
                     "height": 582,
                     "assignment": {
                         "type": "Executable",
-                        "name": "chrome.exe"
+                        "name": "notepad.exe"
                     }
                 }
             ]
@@ -33,7 +33,18 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": []
+            "zones": [
+                {
+                    "x": -1822,
+                    "y": 202,
+                    "width": 690,
+                    "height": 507,
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "notepad.exe"
+                    }
+                }
+            ]
         }
     ]
 }
