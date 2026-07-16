@@ -452,3 +452,37 @@ class ZoneManager:
     def auto_apply_assignments(self):
         self.refresh_runtime_state()
         self.apply_assignments()
+
+    def auto_assign_window(self, hwnd):
+        """
+        Automatically places a newly created window
+        into its assigned zone if a matching assignment exists.
+        """
+        info = windows.get_window_info(hwnd)
+
+        # Ignore things FancierZones should never touch
+        if not windows.is_tileable_window(hwnd):
+            return
+
+        # Clears empty zones/ resyncs zones if shifted
+        self.refresh_runtime_state()
+
+        # Already placed?
+        if self.get_zone_for_hwnd(hwnd):
+            return
+
+        # Find a matching available zone
+        zone = self.find_best_zone(hwnd)
+
+        if zone is None:
+            return
+
+        self.occupy_zone(zone, hwnd)
+
+        print(
+            f"Auto assigning <> "
+            f"Title={info.title} "
+            f"Exe={info.exe} "
+            f"Class={info.class_name} "
+            f"-> {zone}"
+        )

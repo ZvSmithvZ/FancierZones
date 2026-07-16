@@ -28,6 +28,7 @@ class EditorMode(Enum):
     CREATING = 1
     MOVING = 2
     RESIZING = 3
+    PICK_ASSIGNMENT = 4
 
 
 class AssignmentType(Enum):

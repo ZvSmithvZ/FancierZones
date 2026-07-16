@@ -78,6 +78,7 @@ def is_tileable_window(hwnd):
         "WorkerW",
         "Windows.UI.Core.CoreWindow",
         "ApplicationFrameWindow",
+        "TkTopLevel",
     }
 
     _, pid = win32process.GetWindowThreadProcessId(hwnd)

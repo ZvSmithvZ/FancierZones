@@ -110,6 +110,9 @@ class ZoneOverlay:
         self.selected_zone = None
         self.current_cursor = None
 
+        # Setting assignment to None to start
+        self.assignment_zone = None
+
         # ------------------------------------------------------------
         # Distance from the mouse cursorto the zone's upper-left corner.
         # Keeps the zone from jumping when dragging starts.
@@ -330,6 +333,19 @@ class ZoneOverlay:
             self.root.update()
 
     def mouse_down(self, event):
+
+        # ---------------------------------------------------------------
+        # Pick a window for a zone assignment
+        # ---------------------------------------------------------------
+        if self.editor_mode == EditorMode.PICK_ASSIGNMENT:
+
+            print(self.zone_manager.get_window_under_cursor())
+            hwnd = self.zone_manager.get_window_under_cursor()
+
+            if hwnd:
+                print(hwnd)
+
+            return
 
         hit = self.get_handle_at(event.x, event.y)
         # ---------------------------------------------------------------
@@ -955,7 +971,9 @@ class ZoneOverlay:
 
         zone = self.selected_zone
 
-        popup = tk.Toplevel(self.root)
+        self.assignment_popup = tk.Toplevel(self.root)
+        popup = self.assignment_popup
+
         popup.title("Zone Assignment")
         popup.geometry("300x200")
 
@@ -971,7 +989,8 @@ class ZoneOverlay:
         # ----------------------------
         tk.Label(popup, text="Assignment Type").pack()
 
-        type_var = tk.StringVar()
+        self.assignment_type_var = tk.StringVar()
+        type_var = self.assignment_type_var
 
         type_dropdown = ttk.Combobox(
             popup,
@@ -997,7 +1016,9 @@ class ZoneOverlay:
         # ----------------------------
         tk.Label(popup, text="Name").pack()
 
-        name_entry = tk.Entry(popup)
+        self.assignment_name_entry = tk.Entry(popup)
+        name_entry = self.assignment_name_entry
+
         name_entry.pack()
 
         if zone.assignment:
@@ -1046,6 +1067,25 @@ class ZoneOverlay:
             popup,
             text="Clear Entry",
             command=remove_assignment,
+        ).pack(pady=(5))
+
+        # ---------------------------
+        # Pick Window Assignment button
+        # ---------------------------
+        def pick_window():
+
+            print("Pick Window clicked")
+            self.assignment_zone = zone
+            self.editor_mode = EditorMode.PICK_ASSIGNMENT
+
+            popup.withdraw()
+            print("Click a window to assign")
+            print(self.editor_mode)
+
+        tk.Button(
+            popup,
+            text="Pick Window",
+            command=pick_window,
         ).pack(pady=(5))
 
         def finish():

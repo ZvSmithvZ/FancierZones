@@ -98,10 +98,13 @@ def win_event_proc(
     info = windows.get_window_info(hwnd)
 
     print(
-        f"Valid window shown:{hwnd}",
-        f"Title:{info.title}" f"Exe:{info.exe}",
-        f"Class:{info.class_name}",
+        "--Valid window shown--",
+        f"HWND: {hwnd}",
+        f"Title: {info.title}",
+        f"Exe: {info.exe}",
+        f"Class: {info.class_name}",
     )
+    zone_manager.auto_assign_window(hwnd)
 
 
 # -----------------------------------------------------------------------------
