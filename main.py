@@ -1,6 +1,7 @@
 # import win32gui
 import config
 import hooks
+import win_events
 
 # import windows
 from editor import ZoneEditor
@@ -31,7 +32,7 @@ zone_manager.set_editor(editor)
 # Install global Windows hooks (mouse/keyboard interception from)
 # ------------------------------------------------------------
 hooks.install_hooks(zone_manager)
-
+win_events.install_event_hooks(zone_manager)
 
 # ------------------------------------------------------------
 # Keep program alive and listening for hooks

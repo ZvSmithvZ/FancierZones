@@ -335,6 +335,7 @@ def low_level_keyboard_proc(nCode, wParam, lParam):
                     # as down at the moment Explorer evaluates this event.
                     # print("[debug] -> combo was in progress; scheduling Ctrl release")
                     combo_in_progress = False
+
                     threading.Thread(
                         target=_release_ctrl_after_delay, daemon=True
                     ).start()

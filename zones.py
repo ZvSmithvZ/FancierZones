@@ -140,9 +140,7 @@ class ZoneManager:
         """
 
         # 1. Clean stale zones first, then rebuild occupied zones
-        self.free_invalid_zones()
-
-        self.sync_occupied_zones()
+        self.refresh_runtime_state()
 
         # 2. Get target window
         hwnd = self.get_window_under_cursor()
@@ -154,34 +152,25 @@ class ZoneManager:
                 f"Title={info.title} Exe={info.exe} Class={info.class_name} is not tileable"
             )
             return
+
         # 3. If this window already occupies a zone, leave it alone.
-        #    free_invalid_zones() above already cleared occupied_hwnd
-        #    for any window that moved out of its zone or closed, so
-        #    if we still find one here, it's genuinely still correctly
-        #    placed — no need to touch it.
         current_zone = self.get_zone_for_hwnd(hwnd)
+        # if current_zone is not None:
+        #     current_zone = self.get_zone_for_hwnd(hwnd)
+
         if current_zone is not None:
-            current_zone = self.get_zone_for_hwnd(hwnd)
 
-            if current_zone is not None:
+            if self.is_window_correctly_placed(hwnd, current_zone):
+                print(f"Window already correctly placed: {current_zone}")
+                return
 
-                if self.is_window_correctly_placed(hwnd, current_zone):
-                    print(f"Window already correctly placed: {current_zone}")
-                    return
+            else:
+                print("Window belongs to zone but ZONE position changed. ")
+                print(f"Retiling to {current_zone}")
 
-                else:
-                    print("Window belongs to zone but ZONE position changed. ")
-                    print(f"Retiling to {current_zone}")
+                self.occupy_zone(current_zone, hwnd)
 
-                    windows.move_window(
-                        hwnd,
-                        current_zone.x,
-                        current_zone.y,
-                        current_zone.width,
-                        current_zone.height,
-                    )
-
-                    return
+                return
 
         # 4. Find the best zone for this window
         zone = self.find_best_zone(hwnd)
@@ -193,10 +182,10 @@ class ZoneManager:
         print(
             f"Tiling <> Title={info.title} Exe={info.exe} Class={info.class_name} -> {zone}"
         )
-        windows.move_window(hwnd, zone.x, zone.y, zone.width, zone.height)
 
         # 6. Mark zone as occupied
-        zone.occupied_hwnd = hwnd
+        self.occupy_zone(zone, hwnd)
+
         self.debug_occupied_zones()
 
     def tile_all_windows(self):
@@ -206,7 +195,7 @@ class ZoneManager:
         """
 
         # Clean stale occupancy first
-        self.free_invalid_zones()
+        self.refresh_runtime_state()
         windows_list = windows.enumerate_windows()
 
         for hwnd in windows_list:
@@ -232,15 +221,7 @@ class ZoneManager:
                 f"Tiling <> Title={info.title} Exe={info.exe} Class={info.class_name} -> {zone}"
             )
 
-            windows.move_window(
-                hwnd,
-                zone.x,
-                zone.y,
-                zone.width,
-                zone.height,
-            )
-
-            zone.occupied_hwnd = hwnd
+            self.occupy_zone(zone, hwnd)
 
     def is_window_alive(self, hwnd: int) -> bool:
         """
@@ -304,6 +285,10 @@ class ZoneManager:
 
                         break
 
+    def refresh_runtime_state(self):
+        self.free_invalid_zones()
+        self.sync_occupied_zones()
+
     def window_is_in_zone(self, hwnd, zone):
         left, top, right, bottom = windows.get_window_rect(hwnd)
 
@@ -351,6 +336,21 @@ class ZoneManager:
                 if zone.occupied_hwnd == hwnd:
                     return zone
         return None
+
+    def occupy_zone(self, zone, hwnd):
+        """
+        Moves a window into a zone and marks it occupied.
+        """
+
+        windows.move_window(
+            hwnd,
+            zone.x,
+            zone.y,
+            zone.width,
+            zone.height,
+        )
+
+        zone.occupied_hwnd = hwnd
 
     def debug_occupied_zones(self):
         """
@@ -415,8 +415,7 @@ class ZoneManager:
 
         print("Applying zone assignments...")
 
-        self.free_invalid_zones()
-        self.sync_occupied_zones()
+        self.refresh_runtime_state()
 
         open_windows = windows.enumerate_windows()
 
@@ -440,30 +439,16 @@ class ZoneManager:
 
                     info = windows.get_window_info(hwnd)
 
-                    matches = False
+                    if not self.zone_matches_window(zone, info):
+                        continue
 
-                    if zone.assignment.type == AssignmentType.TITLE:
-                        matches = info.title == zone.assignment.name
+                    print(f"Assignment match: " f"{info.title} -> {zone}")
 
-                    elif zone.assignment.type == AssignmentType.EXE:
-                        matches = info.exe == zone.assignment.name
+                    self.occupy_zone(zone, hwnd)
+                    used_windows.add(hwnd)
 
-                    elif zone.assignment.type == AssignmentType.CLASS:
-                        matches = info.class_name == zone.assignment.name
+                    break
 
-                    if matches:
-
-                        print(f"Assignment match: " f"{info.title} -> {zone}")
-
-                        windows.move_window(
-                            hwnd,
-                            zone.x,
-                            zone.y,
-                            zone.width,
-                            zone.height,
-                        )
-                        used_windows.add(hwnd)
-
-                        zone.occupied_hwnd = hwnd
-
-                        break
+    def auto_apply_assignments(self):
+        self.refresh_runtime_state()
+        self.apply_assignments()
