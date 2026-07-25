@@ -21,6 +21,8 @@ class ZoneOverlay:
         # The minimum size a window can be resized or created at:
         self.minimum_zone_size = 20
 
+        # Setting snap distance while in editor
+        self.snap_distance = 10
         # ------------------------------------------------------------
         # Find the full Windows virtual desktop bounds
         # Example with 3 monitors:
@@ -338,18 +340,6 @@ class ZoneOverlay:
 
     def mouse_down(self, event):
 
-        # ---------------------------------------------------------------
-        # Pick a window for a zone assignment
-        # ---------------------------------------------------------------
-        # if self.editor_mode == EditorMode.PICK_ASSIGNMENT:
-        #     print("pick mode active after mouse down")
-        #     hwnd = self.zone_manager.get_window_under_cursor()
-
-        #     if hwnd:
-        #         self.assignment_window_picked(hwnd)
-
-        #     return
-
         hit = self.get_handle_at(event.x, event.y)
         # ---------------------------------------------------------------
         # Moving/ selecting existing zone branch
@@ -460,13 +450,18 @@ class ZoneOverlay:
             if self.selected_zone is None:
                 return
 
-            self.selected_zone.x = windows_x - self.drag_offset_x
-            self.selected_zone.y = windows_y - self.drag_offset_y
+            new_x = windows_x - self.drag_offset_x
+            new_y = windows_y - self.drag_offset_y
 
-            # Instead of drawing everything we're just going to redraw the affected zone
-            # self.draw()
+            new_x, new_y = self.snap_zone_position(
+                self.selected_zone,
+                new_x,
+                new_y,
+            )
 
-            # print("MOVING:", self.selected_zone.x, self.selected_zone.y)
+            self.selected_zone.x = new_x
+            self.selected_zone.y = new_y
+
             self.refresh_zone()
 
             return
@@ -656,6 +651,93 @@ class ZoneOverlay:
 
         return None
 
+    def snap_to_monitor_edges(self, zone, x, y):
+        """
+        Snaps a moving zone to monitor boundaries.
+        """
+
+        right = x + zone.width
+        bottom = y + zone.height
+
+        for monitor in self.monitors:
+
+            monitor_right = monitor.x + monitor.width
+            monitor_bottom = monitor.y + monitor.height
+
+            # Left edge
+            if abs(x - monitor.x) <= self.snap_distance:
+                x = monitor.x
+
+            # Right edge
+            if abs(right - monitor_right) <= self.snap_distance:
+                x = monitor_right - zone.width
+
+            # Top edge
+            if abs(y - monitor.y) <= self.snap_distance:
+                y = monitor.y
+
+            # Bottom edge
+            if abs(bottom - monitor_bottom) <= self.snap_distance:
+                y = monitor_bottom - zone.height
+
+        return x, y
+
+    def snap_zone_position(self, moving_zone, new_x, new_y):
+        """
+        Snaps a moving zone to monitor edges and other zones.
+        """
+
+        snap_distance = 10
+
+        new_right = new_x + moving_zone.width
+        new_bottom = new_y + moving_zone.height
+
+        for monitor in self.monitors:
+
+            # Snap left edge to monitor left
+            if abs(new_x - monitor.x) <= snap_distance:
+                new_x = monitor.x
+
+            # Snap top edge to monitor top
+            if abs(new_y - monitor.y) <= snap_distance:
+                new_y = monitor.y
+
+            # Snap right edge to monitor right
+            if abs(new_right - (monitor.x + monitor.width)) <= snap_distance:
+                new_x = monitor.x + monitor.width - moving_zone.width
+
+            # Snap bottom edge to monitor bottom
+            if abs(new_bottom - (monitor.y + monitor.height)) <= snap_distance:
+                new_y = monitor.y + monitor.height - moving_zone.height
+
+        # Snap against other zones
+        for monitor in self.monitors:
+            for zone in monitor.zones:
+
+                if zone is moving_zone:
+                    continue
+
+                zone_right = zone.x + zone.width
+                zone_bottom = zone.y + zone.height
+
+                # Left side of moving zone -> right side of existing zone
+                if abs(new_x - zone_right) <= snap_distance:
+                    new_x = zone_right
+
+                # Right side of moving zone -> left side of existing zone
+                if abs(new_right - zone.x) <= snap_distance:
+                    new_x = zone.x - moving_zone.width
+
+                # Top of moving zone -> bottom of existing zone
+                if abs(new_y - zone_bottom) <= snap_distance:
+                    new_y = zone_bottom
+
+                # Bottom of moving zone -> top of existing zone
+                if abs(new_bottom - zone.y) <= snap_distance:
+                    new_y = zone.y - moving_zone.height
+
+        return new_x, new_y
+
     def delete_selected_zone(self, event=None):
         """
         Deletes the currently selected zone.
@@ -753,7 +835,7 @@ class ZoneOverlay:
         in Windows coordinates.
         """
         handle_x = zone.x + zone.width / 2
-        handle_y = zone.y - 25
+        handle_y = zone.y + 35
         return handle_x, handle_y
 
     def get_resize_handle_positions(self, x1, y1, x2, y2):
