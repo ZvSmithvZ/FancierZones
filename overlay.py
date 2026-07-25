@@ -651,36 +651,36 @@ class ZoneOverlay:
 
         return None
 
-    def snap_to_monitor_edges(self, zone, x, y):
-        """
-        Snaps a moving zone to monitor boundaries.
-        """
+    # def snap_to_monitor_edges(self, zone, x, y):
+    #     """
+    #     Snaps a moving zone to monitor boundaries.
+    #     """
 
-        right = x + zone.width
-        bottom = y + zone.height
+    #     right = x + zone.width
+    #     bottom = y + zone.height
 
-        for monitor in self.monitors:
+    #     for monitor in self.monitors:
 
-            monitor_right = monitor.x + monitor.width
-            monitor_bottom = monitor.y + monitor.height
+    #         monitor_right = monitor.x + monitor.width
+    #         monitor_bottom = monitor.y + monitor.height
 
-            # Left edge
-            if abs(x - monitor.x) <= self.snap_distance:
-                x = monitor.x
+    #         # Left edge
+    #         if abs(x - monitor.x) <= self.snap_distance:
+    #             x = monitor.x
 
-            # Right edge
-            if abs(right - monitor_right) <= self.snap_distance:
-                x = monitor_right - zone.width
+    #         # Right edge
+    #         if abs(right - monitor_right) <= self.snap_distance:
+    #             x = monitor_right - zone.width
 
-            # Top edge
-            if abs(y - monitor.y) <= self.snap_distance:
-                y = monitor.y
+    #         # Top edge
+    #         if abs(y - monitor.y) <= self.snap_distance:
+    #             y = monitor.y
 
-            # Bottom edge
-            if abs(bottom - monitor_bottom) <= self.snap_distance:
-                y = monitor_bottom - zone.height
+    #         # Bottom edge
+    #         if abs(bottom - monitor_bottom) <= self.snap_distance:
+    #             y = monitor_bottom - zone.height
 
-        return x, y
+    #     return x, y
 
     def snap_zone_position(self, moving_zone, new_x, new_y):
         """
@@ -737,6 +737,55 @@ class ZoneOverlay:
                     new_y = zone.y - moving_zone.height
 
         return new_x, new_y
+
+    def snap_resize_edge(self, value, axis, moving_zone):
+        """
+        Snaps a resizing edge to monitor edges and other zones.
+        """
+
+        snap_distance = 10
+
+        for monitor in self.monitors:
+
+            if axis == "x":
+                edges = [
+                    monitor.x,
+                    monitor.x + monitor.width,
+                ]
+
+            else:
+                edges = [
+                    monitor.y,
+                    monitor.y + monitor.height,
+                ]
+
+            for edge in edges:
+                if abs(value - edge) <= snap_distance:
+                    return edge
+
+        for monitor in self.monitors:
+            for zone in monitor.zones:
+
+                if zone is moving_zone:
+                    continue
+
+                if axis == "x":
+                    edges = [
+                        zone.x,
+                        zone.x + zone.width,
+                    ]
+
+                else:
+                    edges = [
+                        zone.y,
+                        zone.y + zone.height,
+                    ]
+
+                for edge in edges:
+                    if abs(value - edge) <= snap_distance:
+                        return edge
+
+        return value
 
     def delete_selected_zone(self, event=None):
         """
@@ -896,9 +945,13 @@ class ZoneOverlay:
             self.current_cursor = new_cursor
 
     def resize_left(self, zone, windows_x):
-        """
-        Moves the left edge while keeping the right edge fixed.
-        """
+
+        windows_x = self.snap_resize_edge(
+            windows_x,
+            "x",
+            zone,
+        )
+
         old_right = zone.x + zone.width
         new_width = old_right - windows_x
 
@@ -907,15 +960,23 @@ class ZoneOverlay:
             zone.width = new_width
 
     def resize_right(self, zone, windows_x):
-        """
-        Moves the right edge while keeping the left edge fixed.
-        """
+
+        windows_x = self.snap_resize_edge(
+            windows_x,
+            "x",
+            zone,
+        )
+
         zone.width = max(self.minimum_zone_size, windows_x - zone.x)
 
     def resize_top(self, zone, windows_y):
-        """
-        Moves the top edge while keeping the bottom edge fixed.
-        """
+
+        windows_y = self.snap_resize_edge(
+            windows_y,
+            "y",
+            zone,
+        )
+
         old_bottom = zone.y + zone.height
         new_height = old_bottom - windows_y
 
@@ -924,9 +985,13 @@ class ZoneOverlay:
             zone.height = new_height
 
     def resize_bottom(self, zone, windows_y):
-        """
-        Moves the bottom edge while keeping the top edge fixed.
-        """
+
+        windows_y = self.snap_resize_edge(
+            windows_y,
+            "y",
+            zone,
+        )
+
         zone.height = max(self.minimum_zone_size, windows_y - zone.y)
 
     def refresh_zone(self):

@@ -15,10 +15,10 @@
                     "assignment": null
                 },
                 {
-                    "x": 518,
-                    "y": 161,
-                    "width": 975,
-                    "height": 691,
+                    "x": 190,
+                    "y": 178,
+                    "width": 1444,
+                    "height": 697,
                     "assignment": {
                         "type": "Executable",
                         "name": "chrome.exe"
