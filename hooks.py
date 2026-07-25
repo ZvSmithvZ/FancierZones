@@ -77,6 +77,8 @@ WM_SYSKEYDOWN = 0x0104
 WM_SYSKEYUP = 0x0105
 
 # ---- Mouse hook message constants ----
+WM_LBUTTONDOWN = 0x0201
+WM_LBUTTONUP = 0x0202
 WM_RBUTTONDOWN = 0x0204
 WM_RBUTTONUP = 0x0205
 
@@ -368,6 +370,23 @@ def low_level_mouse_proc(nCode, wParam, lParam):
     global combo_in_progress
 
     if nCode == 0:
+
+        if (
+            wParam == WM_LBUTTONDOWN
+            and zone_manager
+            and zone_manager.editor
+            and zone_manager.editor.is_picking_assignment()
+        ):
+            zone_manager.editor.assignment_click()
+            return 1
+
+        if (
+            wParam == WM_LBUTTONUP
+            and zone_manager
+            and zone_manager.editor
+            and zone_manager.editor.is_picking_assignment()
+        ):
+            return 1
 
         if wParam == WM_RBUTTONDOWN:
             # print(f"[debug] WM_RBUTTONDOWN received, win_key_down={win_key_down}")

@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import config
+import windows
 from enums import AssignmentType, EditorMode, HandleType
 from models import Assignment
 
@@ -112,6 +113,9 @@ class ZoneOverlay:
 
         # Setting assignment to None to start
         self.assignment_zone = None
+
+        # Setting assignment window info to None to start
+        self.assignment_window_info = None
 
         # ------------------------------------------------------------
         # Distance from the mouse cursorto the zone's upper-left corner.
@@ -337,15 +341,14 @@ class ZoneOverlay:
         # ---------------------------------------------------------------
         # Pick a window for a zone assignment
         # ---------------------------------------------------------------
-        if self.editor_mode == EditorMode.PICK_ASSIGNMENT:
+        # if self.editor_mode == EditorMode.PICK_ASSIGNMENT:
+        #     print("pick mode active after mouse down")
+        #     hwnd = self.zone_manager.get_window_under_cursor()
 
-            print(self.zone_manager.get_window_under_cursor())
-            hwnd = self.zone_manager.get_window_under_cursor()
+        #     if hwnd:
+        #         self.assignment_window_picked(hwnd)
 
-            if hwnd:
-                print(hwnd)
-
-            return
+        #     return
 
         hit = self.get_handle_at(event.x, event.y)
         # ---------------------------------------------------------------
@@ -961,6 +964,34 @@ class ZoneOverlay:
         # Remove stored references
         del self.zone_canvas_items[id(zone)]
 
+    def assignment_window_picked(self, hwnd):
+
+        self.canvas.configure(cursor="")
+        info = windows.get_window_info(hwnd)
+
+        # Ignore our own overlay/popup
+        if info.exe is not None and info.class_name.lower() == "tktoplevel":
+            print("Ignored FancierZones window")
+            return
+
+        print(
+            "Picked:",
+            info.title,
+            info.exe,
+            info.class_name,
+        )
+
+        self.assignment_window_info = info
+
+        self.editor_mode = EditorMode.IDLE
+        print("Assignment pick finished, editor mode:", self.editor_mode)
+
+        # Show overlay again
+        self.root.deiconify()
+
+        # Reopen assignment popup
+        self.open_assignment_picker_results()
+
     def open_assignment_editor(self, event=None):
         """
         Opens a small popup for editing the selected zone assignment.
@@ -1075,12 +1106,18 @@ class ZoneOverlay:
         def pick_window():
 
             print("Pick Window clicked")
+
             self.assignment_zone = zone
-            self.editor_mode = EditorMode.PICK_ASSIGNMENT
 
             popup.withdraw()
+
+            self.editor_mode = EditorMode.PICK_ASSIGNMENT
+
             print("Click a window to assign")
-            print(self.editor_mode)
+
+            self.canvas.configure(cursor="crosshair")
+
+            self.root.withdraw()
 
         tk.Button(
             popup,
@@ -1106,3 +1143,93 @@ class ZoneOverlay:
             popup.destroy()
 
         popup.protocol("WM_DELETE_WINDOW", close_popup)
+
+    def open_assignment_picker_results(self):
+
+        info = self.assignment_window_info
+
+        if info is None:
+            return
+
+        if self.assignment_zone is None:
+            print("No assignment zone selected")
+            return
+
+        popup = tk.Toplevel(self.root)
+        popup.title("Choose Assignment")
+        popup.geometry("350x250")
+
+        popup.attributes("-topmost", True)
+
+        tk.Label(popup, text="Selected Window:").pack()
+
+        tk.Label(popup, text=f"Title: {info.title}").pack()
+
+        tk.Label(popup, text=f"Exe: {info.exe}").pack()
+
+        tk.Label(popup, text=f"Class: {info.class_name}").pack()
+
+        tk.Label(popup, text="Assign By:").pack()
+
+        type_var = tk.StringVar()
+
+        dropdown = ttk.Combobox(
+            popup,
+            textvariable=type_var,
+            values=[
+                AssignmentType.TITLE.value,
+                AssignmentType.EXE.value,
+                AssignmentType.CLASS.value,
+            ],
+            state="readonly",
+        )
+
+        dropdown.pack()
+
+        type_var.set(AssignmentType.EXE.value)
+
+        def save():
+
+            if self.assignment_zone is None:
+                return
+
+            zone = self.assignment_zone
+
+            selected = AssignmentType(type_var.get())
+
+            if selected == AssignmentType.TITLE:
+                name = info.title
+
+            elif selected == AssignmentType.EXE:
+                name = info.exe
+
+            elif selected == AssignmentType.CLASS:
+                name = info.class_name
+
+            zone.assignment = Assignment(
+                type=selected,
+                name=name,  # type: ignore
+            )
+
+            config.save_config(self.zone_manager.monitors)
+
+            print(f"Assigned {selected.value}: {name}")
+
+            popup.destroy()
+            self.draw()
+
+            self.assignment_window_info = None
+            self.assignment_zone = None
+            self.root.attributes("-disabled", False)
+
+        tk.Button(
+            popup,
+            text="Save Assignment",
+            command=save,
+        ).pack(pady=10)
+
+        tk.Button(
+            popup,
+            text="Cancel",
+            command=popup.destroy,
+        ).pack()

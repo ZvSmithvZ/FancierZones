@@ -1,2 +1,4 @@
 [tool.black]
 line-length = 80
+[tool.ruff.lint]
+ignore = ["SIM102"]

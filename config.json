@@ -1,14 +1,6 @@
 {
     "monitors": [
         {
-            "id": "\\\\.\\DISPLAY2",
-            "x": 1920,
-            "y": 0,
-            "width": 1920,
-            "height": 1080,
-            "zones": []
-        },
-        {
             "id": "\\\\.\\DISPLAY1",
             "x": 0,
             "y": 0,
@@ -16,16 +8,31 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 1992,
-                    "y": 123,
+                    "x": 2058,
+                    "y": 198,
                     "width": 708,
-                    "height": 582,
+                    "height": 587,
+                    "assignment": null
+                },
+                {
+                    "x": 1091,
+                    "y": 278,
+                    "width": 629,
+                    "height": 426,
                     "assignment": {
                         "type": "Executable",
-                        "name": "notepad.exe"
+                        "name": "chrome.exe"
                     }
                 }
             ]
+        },
+        {
+            "id": "\\\\.\\DISPLAY2",
+            "x": 1920,
+            "y": 0,
+            "width": 1920,
+            "height": 1080,
+            "zones": []
         },
         {
             "id": "\\\\.\\DISPLAY3",
@@ -35,10 +42,10 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 574,
-                    "y": 163,
-                    "width": 690,
-                    "height": 507,
+                    "x": -870,
+                    "y": 199,
+                    "width": 821,
+                    "height": 696,
                     "assignment": {
                         "type": "Executable",
                         "name": "notepad.exe"

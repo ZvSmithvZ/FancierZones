@@ -1,4 +1,5 @@
 import config
+from enums import EditorMode
 from models import Zone
 from overlay import ZoneOverlay
 
@@ -112,3 +113,18 @@ class ZoneEditor:
                 return True
 
         return False
+
+    def is_picking_assignment(self):
+        if self.overlay is None:
+            return False
+
+        return self.overlay.editor_mode == EditorMode.PICK_ASSIGNMENT
+
+    def assignment_click(self):
+        if self.overlay is None:
+            return
+
+        hwnd = self.zone_manager.get_window_under_cursor()
+
+        if hwnd:
+            self.overlay.assignment_window_picked(hwnd)
