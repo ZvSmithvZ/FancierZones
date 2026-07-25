@@ -8,17 +8,17 @@
             "height": 1080,
             "zones": [
                 {
-                    "x": 2058,
-                    "y": 198,
-                    "width": 708,
-                    "height": 587,
+                    "x": 2073,
+                    "y": 213,
+                    "width": 693,
+                    "height": 572,
                     "assignment": null
                 },
                 {
-                    "x": 190,
-                    "y": 178,
-                    "width": 1444,
-                    "height": 697,
+                    "x": 734,
+                    "y": 142,
+                    "width": 815,
+                    "height": 775,
                     "assignment": {
                         "type": "Executable",
                         "name": "chrome.exe"
@@ -40,18 +40,7 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
-            "zones": [
-                {
-                    "x": -870,
-                    "y": 199,
-                    "width": 821,
-                    "height": 696,
-                    "assignment": {
-                        "type": "Executable",
-                        "name": "notepad.exe"
-                    }
-                }
-            ]
+            "zones": []
         }
     ]
 }

@@ -830,51 +830,62 @@ class ZoneOverlay:
 
         handle_size = 12
 
+        zones_to_check = []
+
+        # Selected zone gets priority
+        if self.selected_zone:
+            zones_to_check.append(self.selected_zone)
+
+        # Then check every other zone
         for monitor in self.monitors:
             for zone in monitor.zones:
+                if zone != self.selected_zone:
+                    zones_to_check.append(zone)
 
-                # --------------------------------------------
-                # Zone edges in Windows coordinates
-                # --------------------------------------------
+        for zone in zones_to_check:
 
-                x1 = zone.x
-                y1 = zone.y
+            # --------------------------------------------
+            # Zone edges in Windows coordinates
+            # --------------------------------------------
 
-                x2 = zone.x + zone.width
-                y2 = zone.y + zone.height
+            x1 = zone.x
+            y1 = zone.y
 
-                # --------------------------------------------
-                # Get resize handle positions
-                # These are Windows coordinates because
-                # x1/y1/x2/y2 are Windows coordinates.
-                # --------------------------------------------
+            x2 = zone.x + zone.width
+            y2 = zone.y + zone.height
 
-                handles = self.get_resize_handle_positions(
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                )
+            # --------------------------------------------
+            # Get resize handle positions
+            # These are Windows coordinates because
+            # x1/y1/x2/y2 are Windows coordinates.
+            # --------------------------------------------
 
-                for handle, (hx, hy) in handles.items():
+            handles = self.get_resize_handle_positions(
+                x1,
+                y1,
+                x2,
+                y2,
+            )
 
-                    if (
-                        abs(windows_x - hx) <= handle_size
-                        and abs(windows_y - hy) <= handle_size
-                    ):
-                        return (handle, zone)
-
-                # --------------------------------------------
-                # Move handle
-                # --------------------------------------------
-
-                move_x, move_y = self.get_move_handle_position(zone)
+            for handle, (hx, hy) in handles.items():
 
                 if (
-                    abs(windows_x - move_x) <= handle_size
-                    and abs(windows_y - move_y) <= handle_size
+                    abs(windows_x - hx) <= handle_size
+                    and abs(windows_y - hy) <= handle_size
                 ):
-                    return (HandleType.MOVE, zone)
+                    return (handle, zone)
+
+            # --------------------------------------------
+            # Move handle
+            # --------------------------------------------
+
+            move_x, move_y = self.get_move_handle_position(zone)
+
+            if (
+                abs(windows_x - move_x) <= handle_size
+                and abs(windows_y - move_y) <= handle_size
+            ):
+                return (HandleType.MOVE, zone)
 
         return None
 
