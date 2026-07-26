@@ -150,6 +150,7 @@ def detect_monitors():
     for hmonitor, monitor_rect, work_rect in win32api.EnumDisplayMonitors():
         info = win32api.GetMonitorInfo(int(hmonitor))
         left, top, right, bottom = info["Monitor"]
+        work_left, work_top, work_right, work_bottom = info["Work"]
 
         monitors.append(
             Monitor(
@@ -159,6 +160,10 @@ def detect_monitors():
                 width=right - left,
                 height=bottom - top,
                 zones=[],
+                work_x=work_left,
+                work_y=work_top,
+                work_width=work_right - work_left,
+                work_height=work_bottom - work_top,
             )
         )
 
@@ -178,22 +183,3 @@ def get_monitor_for_window(hwnd):
     info = win32api.GetMonitorInfo(hmonitor)
 
     return info["Device"]
-
-
-# ------------------------------ old manual logic
-# def find_window_by_title(partial_title):
-#     result = []
-
-#     def callback(hwnd, _):
-#         # does the window exist
-#         if not win32gui.IsWindowVisible(hwnd):
-#             return
-#         # grabbing title of window
-#         title = win32gui.GetWindowText(hwnd)
-#         # matching partial title and normalizing
-#         if partial_title.lower() in title.lower():
-#             result.append(hwnd)
-
-#     # enumerate through all existing windows
-#     win32gui.EnumWindows(callback, None)
-#     return result

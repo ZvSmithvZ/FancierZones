@@ -23,6 +23,24 @@ class ZoneOverlay:
 
         # Setting snap distance while in editor
         self.snap_distance = 10
+
+        # ------------------------------------------------------------
+        # Initializing settings/behaviors to none
+        # ------------------------------------------------------------
+        # Setting no currently selected zone
+        self.selected_zone = None
+        self.current_cursor = None
+
+        # Setting assignment to None to start
+        self.assignment_zone = None
+
+        # Setting assignment window info to None to start
+        self.assignment_window_info = None
+
+        # Window behaviors to none
+        # self.maximize_var = tk.BooleanVar()
+        # self.always_on_top_var = tk.BooleanVar()
+
         # ------------------------------------------------------------
         # Find the full Windows virtual desktop bounds
         # Example with 3 monitors:
@@ -60,7 +78,7 @@ class ZoneOverlay:
         self.root.configure(bg="black")
         # Make overlay semi-transparent
         # Adjust this value: 0.0 = invisible - 1.0 = fully opaque
-        self.root.attributes("-alpha", 0.35)
+        self.root.attributes("-alpha", 0.65)
         # self.root.attributes("-alpha", 1)
 
         # ------------------------------------------------------------
@@ -98,6 +116,7 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         self.canvas = tk.Canvas(self.root, bg="black", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
+
         # ------------------------------------------------------------
         # These store the rectangle currently being drawn.
         # Canvas position where the user started drawing a new zone.
@@ -106,18 +125,6 @@ class ZoneOverlay:
         self.create_start_x = None
         self.create_start_y = None
         self.current_rectangle = None
-
-        # ------------------------------------------------------------
-        # Setting no currently selected zone
-        # ------------------------------------------------------------
-        self.selected_zone = None
-        self.current_cursor = None
-
-        # Setting assignment to None to start
-        self.assignment_zone = None
-
-        # Setting assignment window info to None to start
-        self.assignment_window_info = None
 
         # ------------------------------------------------------------
         # Distance from the mouse cursorto the zone's upper-left corner.
@@ -249,14 +256,15 @@ class ZoneOverlay:
             x1 + 10,
             y1 + 10,
             text=(
-                f"Xcoord:{zone.x} "
-                f"Ycoord:{zone.y} "
+                f"(X:{zone.x} "
+                f"Y:{zone.y}) "
                 f"Dimensions:{zone.width}x{zone.height} "
-                f"Assigned:{assignment_text}"
+                f"Assigned:{assignment_text} "
                 f"Type:{assignment_type_text} "
             ),
             anchor="nw",
             fill="white",
+            font=("Arial", 10, "bold"),
         )
 
         # -----------------------------------------------
@@ -579,7 +587,7 @@ class ZoneOverlay:
             # Find which monitor this belongs to
             # ------------------------------------------------------------
 
-            monitor = self.find_monitor_for_zone(windows_x, windows_y)
+            monitor = self.find_monitor_at(windows_x, windows_y)
 
             if monitor is None:
                 print("No monitor found")
@@ -637,7 +645,7 @@ class ZoneOverlay:
             windows_y - self.min_y,
         )
 
-    def find_monitor_for_zone(self, x, y):
+    def find_monitor_at(self, x, y):
         """
         Finds which monitor contains the top-left
         corner of the new zone.
@@ -652,37 +660,6 @@ class ZoneOverlay:
                 return monitor
 
         return None
-
-    # def snap_to_monitor_edges(self, zone, x, y):
-    #     """
-    #     Snaps a moving zone to monitor boundaries.
-    #     """
-
-    #     right = x + zone.width
-    #     bottom = y + zone.height
-
-    #     for monitor in self.monitors:
-
-    #         monitor_right = monitor.x + monitor.width
-    #         monitor_bottom = monitor.y + monitor.height
-
-    #         # Left edge
-    #         if abs(x - monitor.x) <= self.snap_distance:
-    #             x = monitor.x
-
-    #         # Right edge
-    #         if abs(right - monitor_right) <= self.snap_distance:
-    #             x = monitor_right - zone.width
-
-    #         # Top edge
-    #         if abs(y - monitor.y) <= self.snap_distance:
-    #             y = monitor.y
-
-    #         # Bottom edge
-    #         if abs(bottom - monitor_bottom) <= self.snap_distance:
-    #             y = monitor_bottom - zone.height
-
-    #     return x, y
 
     def snap_zone_position(self, moving_zone, new_x, new_y):
         """
@@ -1090,10 +1067,10 @@ class ZoneOverlay:
         self.canvas.itemconfig(
             items["label"],
             text=(
-                f"Xcoord:{zone.x} "
-                f"Ycoord:{zone.y} "
+                f"(X:{zone.x} "
+                f"Y:{zone.y}) "
                 f"Dimensions:{zone.width}x{zone.height} "
-                f"Assigned:{assignment_text}"
+                f"Assigned:{assignment_text} "
                 f"Type:{assignment_type_text} "
             ),
         )
@@ -1394,22 +1371,116 @@ class ZoneOverlay:
             command=popup.destroy,
         ).pack()
 
+    def fill_work_area(self):
+
+        if self.selected_zone is None:
+            return
+
+        zone = self.selected_zone
+
+        monitor = self.find_monitor_at(
+            zone.x,
+            zone.y,
+        )
+
+        if monitor is None:
+            return
+
+        zone.x = monitor.work_x
+        zone.y = monitor.work_y
+        zone.width = monitor.work_width
+        zone.height = monitor.work_height
+
+        config.save_config(self.zone_manager.monitors)
+
+        self.draw()
+
+    def fill_entire_monitor(self):
+
+        if self.selected_zone is None:
+            return
+
+        zone = self.selected_zone
+
+        monitor = self.find_monitor_at(
+            zone.x,
+            zone.y,
+        )
+
+        if monitor is None:
+            return
+
+        zone.x = monitor.x
+        zone.y = monitor.y
+        zone.width = monitor.width
+        zone.height = monitor.height
+
+        config.save_config(self.zone_manager.monitors)
+
+        self.draw()
+
     def maximize_selected_zone(self):
 
         print("maximize selected zone")
 
     def show_zone_menu(self, event):
 
+        # zone = self.selected_zone
+
+        # if zone:
+        #     self.maximize_var.set(zone.window_behavior.maximize)
+
+        #     self.always_on_top_var.set(zone.window_behavior.always_on_top)
+
         menu = tk.Menu(self.root, tearoff=False)
 
         menu.add_command(
             label="Assign Window...",
-            command=lambda: self.open_assignment_editor(),
+            command=self.open_assignment_editor,
         )
 
-        menu.add_command(
-            label="Maximize Zone",
-            command=self.maximize_selected_zone,
+        # -----------------------------
+        # Resize Zone submenu
+        # -----------------------------
+
+        resize_menu = tk.Menu(menu, tearoff=False)
+
+        resize_menu.add_command(
+            label="Fill Work Area",
+            command=self.fill_work_area,
+        )
+
+        resize_menu.add_command(
+            label="Fill Entire Monitor",
+            command=self.fill_entire_monitor,
+        )
+
+        menu.add_cascade(
+            label="Resize Zone",
+            menu=resize_menu,
+        )
+
+        # -----------------------------
+        # Window Behavior submenu
+        # -----------------------------
+
+        behavior_menu = tk.Menu(menu, tearoff=False)
+
+        # behavior_menu.add_checkbutton(
+        #     label="Maximize Window",
+        #     command=self.toggle_maximize_behavior,
+        #     variable=self.maximize_var,
+        # )
+
+        # behavior_menu.add_checkbutton(
+        #     label="Always On Top",
+        #     command=self.toggle_always_on_top_behavior,
+        #     variable=self.always_on_top_var,
+        # )
+
+        menu.add_cascade(
+            label="Window Behavior",
+            menu=behavior_menu,
         )
 
         menu.add_separator()

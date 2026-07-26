@@ -6,13 +6,21 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
+            "work_x": 1920,
+            "work_y": 0,
+            "work_width": 1920,
+            "work_height": 1040,
             "zones": [
                 {
                     "x": 1920,
                     "y": 0,
                     "width": 1919,
                     "height": 1042,
-                    "assignment": null
+                    "assignment": null,
+                    "window_behavior": {
+                        "maximize": false,
+                        "always_on_top": false
+                    }
                 }
             ]
         },
@@ -22,25 +30,37 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
+            "work_x": 0,
+            "work_y": 0,
+            "work_width": 1920,
+            "work_height": 1040,
             "zones": [
                 {
                     "x": -1920,
                     "y": 0,
                     "width": 1920,
-                    "height": 1039,
+                    "height": 1040,
                     "assignment": {
                         "type": "Executable",
                         "name": "notepad++.exe"
+                    },
+                    "window_behavior": {
+                        "maximize": false,
+                        "always_on_top": false
                     }
                 },
                 {
-                    "x": 438,
-                    "y": 206,
-                    "width": 988,
-                    "height": 684,
+                    "x": 179,
+                    "y": 240,
+                    "width": 649,
+                    "height": 297,
                     "assignment": {
                         "type": "Executable",
                         "name": "notepad++.exe"
+                    },
+                    "window_behavior": {
+                        "maximize": false,
+                        "always_on_top": false
                     }
                 }
             ]
@@ -51,6 +71,10 @@
             "y": 0,
             "width": 1920,
             "height": 1080,
+            "work_x": -1920,
+            "work_y": 0,
+            "work_width": 1920,
+            "work_height": 1040,
             "zones": []
         }
     ]

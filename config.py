@@ -3,7 +3,7 @@ from pathlib import Path
 
 import windows
 from enums import AssignmentType
-from models import Assignment, Monitor, Zone
+from models import Assignment, Monitor, WindowBehavior, Zone
 
 CONFIG_PATH = Path("config.json")
 
@@ -26,6 +26,10 @@ def load_config() -> list[Monitor]:
             y=monitor_data["y"],
             width=monitor_data["width"],
             height=monitor_data["height"],
+            work_x=monitor_data.get("work_x", monitor_data["x"]),
+            work_y=monitor_data.get("work_y", monitor_data["y"]),
+            work_width=monitor_data.get("work_width", monitor_data["width"]),
+            work_height=monitor_data.get("work_height", monitor_data["height"]),
         )
 
         for zone_data in monitor_data["zones"]:
@@ -39,6 +43,13 @@ def load_config() -> list[Monitor]:
                     name=assignment_data["name"],
                 )
 
+            behavior_data = zone_data.get("window_behavior", {})
+
+            behavior = WindowBehavior(
+                maximize=behavior_data.get("maximize", False),
+                always_on_top=behavior_data.get("always_on_top", False),
+            )
+
             monitor.zones.append(
                 Zone(
                     x=zone_data["x"],
@@ -46,6 +57,7 @@ def load_config() -> list[Monitor]:
                     width=zone_data["width"],
                     height=zone_data["height"],
                     assignment=assignment,
+                    window_behavior=behavior,
                 )
             )
 
@@ -98,6 +110,10 @@ def save_config(monitors: list[Monitor]) -> None:
             "y": monitor.y,
             "width": monitor.width,
             "height": monitor.height,
+            "work_x": monitor.work_x,
+            "work_y": monitor.work_y,
+            "work_width": monitor.work_width,
+            "work_height": monitor.work_height,
             "zones": [],
         }
 
@@ -114,12 +130,19 @@ def save_config(monitors: list[Monitor]) -> None:
                     ),
                     "name": zone.assignment.name,
                 }
+
+            behavior_data = {
+                "maximize": zone.window_behavior.maximize,
+                "always_on_top": zone.window_behavior.always_on_top,
+            }
+
             zone_data = {
                 "x": zone.x,
                 "y": zone.y,
                 "width": zone.width,
                 "height": zone.height,
                 "assignment": assignment_data,
+                "window_behavior": behavior_data,
             }
 
             monitor_data["zones"].append(zone_data)

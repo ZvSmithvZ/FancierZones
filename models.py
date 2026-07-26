@@ -22,13 +22,19 @@ class WindowInfo:
 
 
 @dataclass
+class WindowBehavior:
+    maximize: bool = False
+    always_on_top: bool = False
+
+
+@dataclass
 class Zone:
     x: int
     y: int
     width: int
     height: int
     assignment: Assignment | None = None
-    maximize_window: bool = False
+    window_behavior: WindowBehavior = field(default_factory=WindowBehavior)
     occupied_hwnd: int | None = None
 
 
@@ -39,4 +45,8 @@ class Monitor:
     y: int
     width: int
     height: int
+    work_x: int
+    work_y: int
+    work_width: int
+    work_height: int
     zones: list[Zone] = field(default_factory=list)
