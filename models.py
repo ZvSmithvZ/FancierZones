@@ -28,6 +28,7 @@ class Zone:
     width: int
     height: int
     assignment: Assignment | None = None
+    maximize_window: bool = False
     occupied_hwnd: int | None = None
 
 

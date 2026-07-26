@@ -141,6 +141,8 @@ class ZoneOverlay:
         self.canvas.bind("<Motion>", self.mouse_move)
         # Click 'e' for zone assignment
         self.root.bind("<e>", self.open_assignment_editor)
+        # Right click for context menu on move handle
+        self.canvas.bind("<Button-3>", self.right_click)
 
     def draw(self):
         """
@@ -1391,3 +1393,50 @@ class ZoneOverlay:
             text="Cancel",
             command=popup.destroy,
         ).pack()
+
+    def maximize_selected_zone(self):
+
+        print("maximize selected zone")
+
+    def show_zone_menu(self, event):
+
+        menu = tk.Menu(self.root, tearoff=False)
+
+        menu.add_command(
+            label="Assign Window...",
+            command=lambda: self.open_assignment_editor(),
+        )
+
+        menu.add_command(
+            label="Maximize Zone",
+            command=self.maximize_selected_zone,
+        )
+
+        menu.add_separator()
+
+        menu.add_command(
+            label="Delete Zone",
+            command=self.delete_selected_zone,
+        )
+
+        menu.tk_popup(
+            event.x_root,
+            event.y_root,
+        )
+
+    def right_click(self, event):
+
+        hit = self.get_handle_at(event.x, event.y)
+
+        if hit is None:
+            return
+
+        handle, zone = hit
+
+        if handle != HandleType.MOVE:
+            return
+
+        self.selected_zone = zone
+        self.draw()
+
+        self.show_zone_menu(event)

@@ -1,4 +1,4 @@
 [tool.black]
 line-length = 80
 [tool.ruff.lint]
-ignore = ["SIM102"]
+ignore = ["SIM102","RUF059","SIM103"]
