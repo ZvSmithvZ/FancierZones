@@ -1,4 +1,7 @@
 {
+    "settings": {
+        "auto_tile_on_launch": true
+    },
     "monitors": [
         {
             "id": "\\\\.\\DISPLAY2",
@@ -36,13 +39,13 @@
             "work_height": 1040,
             "zones": [
                 {
-                    "x": -1920,
-                    "y": 0,
-                    "width": 1920,
-                    "height": 1040,
+                    "x": 46,
+                    "y": 173,
+                    "width": 998,
+                    "height": 652,
                     "assignment": {
                         "type": "Executable",
-                        "name": "notepad++.exe"
+                        "name": "chrome.exe"
                     },
                     "window_behavior": {
                         "maximize": false,
@@ -50,14 +53,11 @@
                     }
                 },
                 {
-                    "x": 179,
-                    "y": 240,
-                    "width": 649,
-                    "height": 297,
-                    "assignment": {
-                        "type": "Executable",
-                        "name": "notepad++.exe"
-                    },
+                    "x": 1174,
+                    "y": 145,
+                    "width": 707,
+                    "height": 688,
+                    "assignment": null,
                     "window_behavior": {
                         "maximize": false,
                         "always_on_top": false
@@ -75,7 +75,22 @@
             "work_y": 0,
             "work_width": 1920,
             "work_height": 1040,
-            "zones": []
+            "zones": [
+                {
+                    "x": -1659,
+                    "y": 177,
+                    "width": 1188,
+                    "height": 738,
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "notepad.exe"
+                    },
+                    "window_behavior": {
+                        "maximize": false,
+                        "always_on_top": false
+                    }
+                }
+            ]
         }
     ]
 }

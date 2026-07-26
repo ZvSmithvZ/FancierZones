@@ -1,10 +1,13 @@
 # import win32gui
+import threading
+
 import config
 import hooks
 import win_events
 
 # import windows
 from editor import ZoneEditor
+from tray import TrayManager
 
 # from overlay import ZoneOverlay
 from zones import ZoneManager
@@ -33,6 +36,17 @@ zone_manager.set_editor(editor)
 # ------------------------------------------------------------
 hooks.install_hooks(zone_manager)
 win_events.install_event_hooks(zone_manager)
+
+
+# ------------------------------------------------------------
+# Get tray menuing running
+# ------------------------------------------------------------
+tray = TrayManager(zone_manager)
+
+threading.Thread(
+    target=tray.start,
+    daemon=True,
+).start()
 
 # ------------------------------------------------------------
 # Keep program alive and listening for hooks

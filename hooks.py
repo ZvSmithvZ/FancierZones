@@ -56,6 +56,8 @@ from zones import ZoneManager
 #   cursor doesn't also get a context menu -- that part was never broken.
 # ============================================================================
 
+last_tk_update = 0
+
 # ---- Hook type constants ----
 WH_KEYBOARD_LL = 13
 WH_MOUSE_LL = 14
@@ -478,23 +480,39 @@ def unhook_hooks():
 
 def message_loop():
     """
-    Low-level hooks require a live message pump on the same thread that
-    installed them -- Windows delivers hook events through the thread's
-    message queue. Without this loop running, the hooks never actually fire.
+    Message pump for low-level hooks and tkinter updates.
     """
+
     msg = wintypes.MSG()
 
     while True:
 
-        # Process Windows messages if available
-        while user32.PeekMessageW(ctypes.byref(msg), None, 0, 0, 1):
+        result = user32.MsgWaitForMultipleObjects(
+            0,
+            None,
+            False,
+            10,
+            0x04FF,
+        )
 
-            user32.TranslateMessage(ctypes.byref(msg))
-            user32.DispatchMessageW(ctypes.byref(msg))
+        # Windows message available
+        if result == 0:
 
-        # Allow editor overlay to process tkinter events
+            while user32.PeekMessageW(
+                ctypes.byref(msg),
+                None,
+                0,
+                0,
+                1,
+            ):
+                user32.TranslateMessage(ctypes.byref(msg))
+                user32.DispatchMessageW(ctypes.byref(msg))
+
+        # Periodic tkinter update
         if zone_manager and zone_manager.editor:
+
             editor = zone_manager.editor
 
             if editor.overlay:
+
                 editor.overlay.update()

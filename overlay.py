@@ -510,7 +510,10 @@ class ZoneOverlay:
         # ------------------------------------------------------------
         if self.editor_mode == EditorMode.MOVING:
 
-            config.save_config(self.zone_manager.monitors)
+            config.save_config(
+                self.zone_manager.monitors,
+                self.zone_manager.settings,
+            )
 
             self.editor_mode = EditorMode.IDLE
             self.active_handle = HandleType.NONE
@@ -532,7 +535,10 @@ class ZoneOverlay:
                 # self.selected_zone.height
             )
 
-            config.save_config(self.zone_manager.monitors)
+            config.save_config(
+                self.zone_manager.monitors,
+                self.zone_manager.settings,
+            )
 
             self.editor_mode = EditorMode.IDLE
             self.active_handle = HandleType.NONE
@@ -597,7 +603,10 @@ class ZoneOverlay:
                 self.zone_manager.editor.add_zone(
                     monitor.id, windows_x, windows_y, width, height
                 )
-                config.save_config(self.zone_manager.monitors)
+                config.save_config(
+                    self.zone_manager.monitors,
+                    self.zone_manager.settings,
+                )
 
             # Remove preview rectangle
             if self.current_rectangle:
@@ -791,7 +800,10 @@ class ZoneOverlay:
         self.editor_mode = EditorMode.IDLE
 
         # Save JSON
-        config.save_config(self.zone_manager.monitors)
+        config.save_config(
+            self.zone_manager.monitors,
+            self.zone_manager.settings,
+        )
 
     def get_handle_at(self, canvas_x, canvas_y):
         """
@@ -1266,7 +1278,10 @@ class ZoneOverlay:
             print(
                 f"Zone Assigned to Type:{Assignment.type} Name:{Assignment.name}"
             )
-            config.save_config(self.zone_manager.monitors)
+            config.save_config(
+                self.zone_manager.monitors,
+                self.zone_manager.settings,
+            )
             self.root.attributes("-disabled", False)
             popup.destroy()
             self.draw()
@@ -1348,7 +1363,10 @@ class ZoneOverlay:
                 name=name,  # type: ignore
             )
 
-            config.save_config(self.zone_manager.monitors)
+            config.save_config(
+                self.zone_manager.monitors,
+                self.zone_manager.settings,
+            )
 
             print(f"Assigned {selected.value}: {name}")
 
@@ -1391,7 +1409,10 @@ class ZoneOverlay:
         zone.width = monitor.work_width
         zone.height = monitor.work_height
 
-        config.save_config(self.zone_manager.monitors)
+        config.save_config(
+            self.zone_manager.monitors,
+            self.zone_manager.settings,
+        )
 
         self.draw()
 
@@ -1415,7 +1436,10 @@ class ZoneOverlay:
         zone.width = monitor.width
         zone.height = monitor.height
 
-        config.save_config(self.zone_manager.monitors)
+        config.save_config(
+            self.zone_manager.monitors,
+            self.zone_manager.settings,
+        )
 
         self.draw()
 

@@ -2,6 +2,7 @@ import win32api
 import win32con
 import win32gui
 
+import config
 import windows
 from enums import AssignmentType
 from models import Monitor, Zone
@@ -10,6 +11,7 @@ from models import Monitor, Zone
 # ------------------------Defining Zone Manager Class------------------------
 class ZoneManager:
     def __init__(self):
+        self.settings = config.load_settings()
         self.monitors: list[Monitor] = []
         # ------------------------------------------------------------
         # Tracks whether we are currently creating/editing zones
@@ -458,6 +460,11 @@ class ZoneManager:
         Automatically places a newly created window
         into its assigned zone if a matching assignment exists.
         """
+        print("Auto_assign_window called")
+        if not self.settings.auto_tile_on_launch:
+            print(f"auto_tile is set to:{self.settings.auto_tile_on_launch}")
+            return
+
         info = windows.get_window_info(hwnd)
 
         # Ignore things FancierZones should never touch

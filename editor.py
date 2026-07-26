@@ -83,7 +83,10 @@ class ZoneEditor:
 
                 monitor.zones.append(zone)
                 # Saving zones to json file
-                config.save_config(self.zone_manager.monitors)
+                config.save_config(
+                    self.zone_manager.monitors,
+                    self.zone_manager.settings,
+                )
 
                 print(
                     f"Added zone to {monitor.id}: " f"{x},{y} {width}x{height}"

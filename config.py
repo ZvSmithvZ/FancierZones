@@ -3,9 +3,34 @@ from pathlib import Path
 
 import windows
 from enums import AssignmentType
-from models import Assignment, Monitor, WindowBehavior, Zone
+from models import AppSettings, Assignment, Monitor, WindowBehavior, Zone
 
 CONFIG_PATH = Path("config.json")
+
+# DEFAULT_SETTINGS = {
+#     "auto_tile_on_launch": False,
+# }
+
+
+def load_settings() -> AppSettings:
+    """
+    Loads global application settings.
+    """
+
+    if not CONFIG_PATH.exists():
+        return AppSettings()
+
+    with open(CONFIG_PATH, "r") as file:
+        data = json.load(file)
+
+    settings_data = data.get("settings", {})
+
+    return AppSettings(
+        auto_tile_on_launch=settings_data.get(
+            "auto_tile_on_launch",
+            False,
+        )
+    )
 
 
 def load_config() -> list[Monitor]:
@@ -95,12 +120,23 @@ def merge_monitors():
     return detected_monitors
 
 
-def save_config(monitors: list[Monitor]) -> None:
+def save_config(
+    monitors: list[Monitor],
+    settings: AppSettings,
+) -> None:
     """
     Saves the current monitor and zone layout to config.json.
     """
 
-    data = {"monitors": []}
+    # if settings is None:
+    #     settings = DEFAULT_SETTINGS.copy()
+
+    data = {
+        "settings": {
+            "auto_tile_on_launch": settings.auto_tile_on_launch,
+        },
+        "monitors": [],
+    }
 
     for monitor in monitors:
 

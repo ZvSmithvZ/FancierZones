@@ -4,6 +4,11 @@ from enums import AssignmentType
 
 
 @dataclass
+class AppSettings:
+    auto_tile_on_launch: bool = False
+
+
+@dataclass
 class Assignment:
     """
     Describes what window should occupy a zone.
