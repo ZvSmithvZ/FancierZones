@@ -39,7 +39,7 @@
             "work_height": 1040,
             "zones": [
                 {
-                    "x": 46,
+                    "x": 77,
                     "y": 173,
                     "width": 998,
                     "height": 652,
@@ -53,11 +53,14 @@
                     }
                 },
                 {
-                    "x": 1174,
-                    "y": 145,
+                    "x": 1198,
+                    "y": 151,
                     "width": 707,
                     "height": 688,
-                    "assignment": null,
+                    "assignment": {
+                        "type": "Executable",
+                        "name": "chrome.exe"
+                    },
                     "window_behavior": {
                         "maximize": false,
                         "always_on_top": false

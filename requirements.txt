@@ -1,0 +1,10 @@
+keyboard==0.13.5
+mouse==0.7.1
+pillow==12.3.0
+psutil==7.2.2
+PyQt6==6.11.0
+PyQt6-Qt6==6.11.1
+PyQt6_sip==13.11.1
+pystray==0.19.5
+pywin32==312
+six==1.17.0
