@@ -183,7 +183,7 @@ class INPUT(ctypes.Structure):
     """
 
     class _INPUT(ctypes.Union):
-        _fields_ = [
+        _fields_ = [  # noqa: RUF012
             ("mi", MOUSEINPUT),
             ("ki", KEYBDINPUT),
             ("hi", HARDWAREINPUT),

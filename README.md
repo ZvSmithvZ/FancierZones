@@ -141,25 +141,26 @@ The goal isn't simply to recreate FancyZones—it's to build a more flexible wor
 
 Clone the repository:
 
-git clone <YOUR-GITHUB-REPOSITORY-URL>
+```bash
+git clone https://github.com/ZvSmithvZ/FancierZones.git
 cd FancierZones
-
+```
 
 Create and activate a virtual environment:
-
+```bash
 python -m venv .venv
 .venv\Scripts\activate
-
+```
 
 Install the dependencies:
-
+```bash
 pip install -r requirements.txt
-
+```
 
 Run FancierZones:
-
+```bash
 python main.py
-
+```
 
 ---
 
@@ -178,4 +179,4 @@ Current work includes expanding per-zone window behaviors, improving the editor 
 
 ---
 ## License
-MIT
+This project is licensed under the [MIT License](LICENSE).
